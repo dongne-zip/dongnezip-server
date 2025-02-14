@@ -37,11 +37,6 @@ module.exports = (sequelize, Sequelize) => {
         unique: true,
         field: "nickname",
       },
-      place: {
-        type: Sequelize.STRING,
-        allowNull: false,
-        field: "place",
-      },
       profileImg: {
         type: Sequelize.STRING,
         field: "profile_img",

@@ -8,12 +8,12 @@ module.exports = (Sequelize, DataTypes) => {
         primaryKey: true,
       },
       itemID: {
-        tpye: DataTypes.INTEGER,
+        type: DataTypes.INTEGER,
         allowNull: true,
         field: "item_id",
       },
       chatHost: {
-        tpye: DataTypes.INTEGER,
+        type: DataTypes.INTEGER,
         allowNull: true,
         field: "chat_host",
       },
