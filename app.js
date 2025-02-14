@@ -2,19 +2,34 @@ const express = require("express");
 const http = require("http");
 require("dotenv").config();
 const cors = require("cors");
-
-const indexRouter = require("./routes");
-const PORT = 8080;
-
+const { sequelize } = require("./model");
+const PORT = process.env.PORT;
+const prefix = "/api-server";
 const app = express();
 const server = http.createServer(app);
-socketHandler(server);
-
+//socketHandler(server);
 app.use(cors());
 
-const prefix = "/api-server";
-app.use(prefix, indexRouter);
+// // 라우터 임포트
+// const indexRouter = require("./routes/index");
+// const userRouter = require("./routes/user");
+// const itemRouter = require("./routes/item");
 
-server.listen(PORT, () => {
-  console.log("server is open!! PORT is", PORT);
-});
+// // 메인 라우터 설정
+// app.use(prefix, indexRouter);
+
+// // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
+// app.use(`${prefix}/user`, userRouter);
+// app.use(`${prefix}/item`, itemRouter);
+
+sequelize
+  .sync({ force: false })
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+    console.log("database sync 오류!");
+  });
