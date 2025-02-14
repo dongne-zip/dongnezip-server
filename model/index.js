@@ -32,6 +32,8 @@ db.Map = require("./Map")(sequelize, Sequelize);
 db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
+// // /** 테이블 관계 설정 **/
+
 /** 테이블 관계 설정 **/
 
 // User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
@@ -58,21 +60,21 @@ db.User.hasMany(db.Favorite, {
 });
 db.Favorite.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
-// User → Room (1:N) - 사용자가 탈퇴하면 관련 채팅방 삭제
-db.User.hasMany(db.Room, {
+// User → ChatRoom (1:N) - 사용자가 탈퇴하면 관련 채팅방 삭제
+db.User.hasMany(db.ChatRoom, {
   foreignKey: "userId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Room.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
+db.ChatRoom.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
-// User → Message (1:N) - 사용자가 탈퇴하면 보낸 메시지 삭제
-db.User.hasMany(db.Message, {
+// User → ChatMessage (1:N) - 사용자가 탈퇴하면 보낸 메시지 삭제
+db.User.hasMany(db.ChatMessage, {
   foreignKey: "userId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Message.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
+db.ChatMessage.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
 // Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
 db.Item.hasMany(db.ItemImage, {
@@ -98,21 +100,24 @@ db.Item.hasMany(db.Transaction, {
 });
 db.Transaction.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
 
-// Item → Room (1:N) - 상품이 삭제되더라도 채팅방은 유지 (SET NULL)
-db.Item.hasMany(db.Room, {
+// Item → ChatRoom (1:N) - 상품이 삭제되더라도 채팅방은 유지 (SET NULL)
+db.Item.hasMany(db.ChatRoom, {
   foreignKey: "itemId",
   sourceKey: "id",
   onDelete: "SET NULL",
 });
-db.Room.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
+db.ChatRoom.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
 
-// Room → Message (1:N) - 채팅방이 삭제되면 메시지도 삭제
-db.Room.hasMany(db.Message, {
+// ChatRoom → ChatMessage (1:N) - 채팅방이 삭제되면 메시지도 삭제
+db.ChatRoom.hasMany(db.ChatMessage, {
   foreignKey: "roomId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Message.belongsTo(db.Room, { foreignKey: "roomId", targetKey: "id" });
+db.ChatMessage.belongsTo(db.ChatRoom, {
+  foreignKey: "roomId",
+  targetKey: "id",
+});
 
 // Map → Item (1:1) - 상품이 삭제되면 지도 정보도 삭제
 db.Map.hasOne(db.Item, {

@@ -1,5 +1,5 @@
-module.exports = (Sequelize, DataTypes) => {
-  const chatMessage = Sequelize.define(
+module.exports = (sequelize, DataTypes) => {
+  const ChatMessage = sequelize.define(
     "message",
     {
       id: {
@@ -37,5 +37,5 @@ module.exports = (Sequelize, DataTypes) => {
     }
   );
 
-  return chatMessage;
+  return ChatMessage;
 };

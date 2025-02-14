@@ -1,5 +1,5 @@
-module.exports = (Sequelize, DataTypes) => {
-  const chatRoom = Sequelize.define(
+module.exports = (sequelize, DataTypes) => {
+  const ChatRoom = sequelize.define(
     "room",
     {
       id: {
@@ -7,7 +7,7 @@ module.exports = (Sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      itemID: {
+      itemId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         field: "item_id",
@@ -29,5 +29,5 @@ module.exports = (Sequelize, DataTypes) => {
     }
   );
 
-  return chatRoom;
+  return ChatRoom;
 };
