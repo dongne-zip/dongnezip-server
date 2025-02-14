@@ -9,7 +9,6 @@ module.exports = (Sequelize, DataTypes) => {
       },
       roomId: {
         type: DataTypes.INTEGER,
-        autoIncrement: true,
         allowNull: true,
         field: "room_id",
       },
@@ -27,8 +26,8 @@ module.exports = (Sequelize, DataTypes) => {
         field: "is_read",
       },
       msgType: {
-        type: DataTypes.ENUM(text, image),
-        dafaultValue: text,
+        type: DataTypes.ENUM("text", "image"),
+        dafaultValue: "text",
         field: "msg_type",
       },
     },
