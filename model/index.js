@@ -27,5 +27,9 @@ db.Region = require("./Region")(sequelize, Sequelize);
 db.Category = require("./Category")(sequelize, Sequelize);
 db.Favorite = require("./Favorite")(sequelize, Sequelize);
 db.Transaction = require("./Transaction")(sequelize, Sequelize);
+db.User = require("./User")(sequelize, Sequelize);
+db.Map = require("./Map")(sequelize, Sequelize);
+db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
+db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
 module.exports = db;

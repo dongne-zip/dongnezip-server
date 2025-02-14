@@ -23,7 +23,7 @@ app.use(cors());
 // app.use(`${prefix}/item`, itemRouter);
 
 sequelize
-  .sync({ force: false })
+  .sync({ force: true })
   .then(() => {
     app.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);
