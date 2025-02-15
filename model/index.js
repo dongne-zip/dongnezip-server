@@ -32,8 +32,6 @@ db.Map = require("./Map")(sequelize, Sequelize);
 db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
-// // /** 테이블 관계 설정 **/
-
 /** 테이블 관계 설정 **/
 
 // User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
