@@ -13,17 +13,17 @@ app.use(cors());
 // // 라우터 임포트
 // const indexRouter = require("./routes/index");
 // const userRouter = require("./routes/user");
-// const itemRouter = require("./routes/item");
+const itemRouter = require("./routes/item");
 
-// // // 메인 라우터 설정
+// // 메인 라우터 설정
 // app.use(prefix, indexRouter);
 
 // // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 // // app.use(`${prefix}/user`, userRouter);
-// app.use(`${prefix}/item`, itemRouter);
+app.use(`${prefix}/item`, itemRouter);
 
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
     app.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);
