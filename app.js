@@ -6,27 +6,28 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const prefix = "/api-server";
 const app = express();
+const socketHandler = require("./socket/index");
 const server = http.createServer(app);
-//socketHandler(server);
+socketHandler(server);
 app.use(cors());
 
 // // 라우터 임포트
-// const indexRouter = require("./routes/index");
-// const chatRouter = require("./routes/chat");
+const indexRouter = require("./routes/index");
+const chatRouter = require("./routes/chat");
 // const userRouter = require("./routes/user");
 // const itemRouter = require("./routes/item");
 
 // // 메인 라우터 설정
-// app.use(prefix, indexRouter);
+app.use(prefix, indexRouter);
 
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
-// app.use(`${prefix}/chat`, chatRouter);
+app.use(`${prefix}/chat`, chatRouter);
 // app.use(`${prefix}/item`, itemRouter);
 
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);
     });
   })
