@@ -1,4 +1,5 @@
 const socketIO = require("socket.io");
+const { ChatMessage } = require("../model/index");
 
 function socketHandler(server) {
   const io = socketIO(server, {
@@ -24,8 +25,17 @@ function socketHandler(server) {
       delete nickInfo[socket.id];
     });
 
-    socket.on("send", (msgData) => {
+    socket.on("send", async (msgData) => {
       console.log("sendData", msgData);
+      try {
+        await ChatMessage.create({
+          roomId: msgData.roomId,
+          senderId: msgData.myNick,
+          message: msgData.msg,
+        });
+      } catch (err) {
+        console.error(err);
+      }
       io.emit("message", {
         nick: msgData.myNick,
         message: msgData.msg,
