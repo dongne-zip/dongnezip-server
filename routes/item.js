@@ -1,7 +1,7 @@
 const express = require("express");
 const controller = require("../controller/Citem");
 const router = express.Router();
-// const authenticateToken = require("../middlewares/jwtAuth");
+const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 
 // /** 전체 상품 조회 */
@@ -20,9 +20,9 @@ const upload = require("../config/s3");
 // // POST /api-server/item/pickCategory
 // router.post("/pickCategory", authenticateToken, controller.setCategory);
 
-// /** 판매 글 등록 */
-// // POST /api-server/item/addItem
-// router.post("/addItem", authenticateToken, controller.createItem);
+/** 판매 글 등록 */
+// POST /api-server/item/addItem
+router.post("/addItem", upload.array("images", 5), controller.createItem);
 
 // /** 판매 글 수정 */
 // // POST /api-server/item/editItem
@@ -42,6 +42,6 @@ const upload = require("../config/s3");
 
 /** 상품 이미지 업로드 (여러 개 가능) */
 // POST /api-server/item/upload
-router.post("/upload", upload.array("images", 5), controller.uploadImages);
+// router.post("/upload", upload.array("images", 5), controller.uploadImages);
 
 module.exports = router;

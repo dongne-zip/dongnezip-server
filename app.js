@@ -10,6 +10,9 @@ const server = http.createServer(app);
 //socketHandler(server);
 app.use(cors());
 
+app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
+app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
+
 // // 라우터 임포트
 // const indexRouter = require("./routes/index");
 // const userRouter = require("./routes/user");
