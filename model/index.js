@@ -124,4 +124,29 @@ db.Map.hasOne(db.Item, {
 });
 db.Item.belongsTo(db.Map, { foreignKey: "mapId", targetKey: "id" });
 
+// Category → Item (1:N) - 카테고리가 삭제되더라도 상품은 유지 (SET NULL)
+db.Category.hasMany(db.Item, {
+  foreignKey: "categoryId",
+  sourceKey: "id",
+  onDelete: "SET NULL",
+});
+db.Item.belongsTo(db.Category, {
+  foreignKey: "categoryId",
+  targetKey: "id",
+});
+
+db.Region.hasMany(db.Item, { foreignKey: "regionId", onDelete: "CASCADE" });
+db.Item.belongsTo(db.Region, { foreignKey: "regionId", onDelete: "CASCADE" });
+
+// Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
+db.Item.hasMany(db.ItemImage, {
+  foreignKey: "itemId",
+  sourceKey: "id",
+  onDelete: "CASCADE",
+});
+db.ItemImage.belongsTo(db.Item, {
+  foreignKey: "itemId",
+  targetKey: "id",
+});
+
 module.exports = db;

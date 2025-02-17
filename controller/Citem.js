@@ -1,5 +1,13 @@
 const axios = require("axios");
-const { Item, Map, Region, ItemImage } = require("../model");
+const {
+  Item,
+  Category,
+  Map,
+  Region,
+  ItemImage,
+  Sequelize,
+} = require("../model");
+
 const upload = require("../config/s3");
 require("dotenv").config();
 
@@ -160,5 +168,48 @@ exports.createItem = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "판매 글 등록 실패", error });
+  }
+};
+
+/** 전체 상품 조회 */
+// GET /api-server/item
+
+exports.getAllItems = async (req, res) => {
+  try {
+    const { categoryId, regionId } = req.query;
+
+    const filter = {};
+    if (categoryId) filter.categoryId = categoryId;
+    if (regionId) filter.regionId = regionId;
+
+    const items = await Item.findAll({
+      where: filter, // 필터링 적용
+      include: [
+        { model: Category, attributes: ["category"] }, // 카테고리 조인
+        { model: Region, attributes: ["province", "district"] }, // 지역 조인
+        {
+          model: ItemImage,
+          attributes: ["imageUrl"],
+          limit: 1, // 첫 번째 이미지 하나만 가져오기
+          order: [["id", "ASC"]], // id 기준 오름차순 정렬
+          separate: true, // 별도의 쿼리 실행 (N+1 문제 방지)
+          required: false, // 이미지가 없어도 Item이 조회되도록 설정
+        },
+      ],
+      attributes: [
+        "id",
+        "userId",
+        "title",
+        "price",
+        "status",
+        "detail",
+        "itemStatus",
+      ],
+    });
+
+    return res.status(200).json({ success: true, data: items });
+  } catch (error) {
+    console.error("Error fetching items:", error);
+    return res.status(500).json({ success: false, message: "서버 오류" });
   }
 };

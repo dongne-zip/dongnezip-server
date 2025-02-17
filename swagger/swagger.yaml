@@ -1,11 +1,74 @@
 openapi: 3.0.0
 info:
-  title: 상품 등록 API
-  description: "이미지와 함께 상품 정보를 등록하는 API"
+  title: Item API
+  description: "상품 등록 및 조회 API (이미지 포함)"
   version: 1.0.0
 
+servers:
+  - url: http://localhost:8080/api-server
+    description: 로컬 개발 서버
+
 paths:
-  /api-server/item/addItem:
+  /item/item:
+    get:
+      summary: "전체 상품 조회"
+      description: "카테고리 및 지역을 기준으로 상품을 필터링하여 조회합니다. 각 상품에는 대표 이미지가 포함됩니다."
+      parameters:
+        - name: categoryId
+          in: query
+          description: "필터링할 카테고리 ID"
+          required: false
+          schema:
+            type: integer
+        - name: regionId
+          in: query
+          description: "필터링할 지역 ID"
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "성공적으로 상품 목록을 조회함"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Item"
+        "400":
+          description: "잘못된 요청 (쿼리 파라미터 오류 등)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "잘못된 요청입니다."
+        "500":
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "서버 오류가 발생했습니다."
+
+  /item/addItem:
     post:
       summary: "상품 등록"
       description: "이미지와 함께 상품 정보를 등록합니다."
@@ -70,3 +133,48 @@ paths:
           description: "잘못된 요청"
         "500":
           description: "서버 오류"
+
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 101
+        title:
+          type: string
+          example: "새로운 상품"
+        price:
+          type: integer
+          example: 50000
+        status:
+          type: string
+          example: "available"
+        detail:
+          type: string
+          example: "상품 상세 설명"
+        itemStatus:
+          type: string
+          example: "new"
+        category:
+          type: object
+          properties:
+            category:
+              type: string
+              example: "전자제품"
+        region:
+          type: object
+          properties:
+            province:
+              type: string
+              example: "서울특별시"
+            district:
+              type: string
+              example: "강남구"
+        imageUrl:
+          type: string
+          example: "https://example.com/image.jpg"

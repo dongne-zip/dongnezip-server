@@ -4,9 +4,9 @@ const router = express.Router();
 const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 
-// /** 전체 상품 조회 */
-// // GET /api-server/item
-// router.post("/items", authenticateToken, controller.getAllItems);
+/** 전체 상품 조회 */
+// GET /api-server/item
+router.get("/item", controller.getAllItems);
 
 // /** 상품 검색 */
 // // GET /api-server/item?keyword=검색어
