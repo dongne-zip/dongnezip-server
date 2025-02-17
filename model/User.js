@@ -1,55 +1,65 @@
-module.exports = (sequelize, Sequelize) => {
+"use strict";
+
+module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "user",
     {
       id: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
         allowNull: false,
         field: "id",
       },
-      userId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
+      email: {
+        type: DataTypes.STRING(40),
+        allowNull: true,
         unique: true,
-        field: "user_id",
+        field: "email",
       },
       snsId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
+        type: DataTypes.STRING(40),
+        allowNull: true,
         unique: true,
-        field: "sns_id",
+        field: "snsId",
+      },
+      provider: {
+        type: DataTypes.ENUM("local", "kakao", "google"),
+        allowNull: false,
+        defaultValue: "local",
+        field: "provider",
       },
       password: {
-        type: Sequelize.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(100),
+        allowNull: true,
         field: "password",
       },
       userNm: {
-        type: Sequelize.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         field: "user_nm",
       },
       nickname: {
-        type: Sequelize.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         unique: true,
         field: "nickname",
       },
       profileImg: {
-        type: Sequelize.STRING,
+        type: DataTypes.STRING(200),
+        allowNull: true,
         field: "profile_img",
       },
       phone: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         field: "phone",
       },
     },
     {
       freezeTableName: true,
       timestamps: true,
+      paranoid: true, // soft delete
     }
   );
   return User;
