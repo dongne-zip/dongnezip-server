@@ -1,42 +1,45 @@
 const express = require("express");
-const UserController = require("../controller/CUser");
+const passport = require("passport");
+const UserController = require("../controller/Cuser");
+const authenticateToken = require("../middlewares/jwtAuth");
 
 const router = express.Router();
-
-// 회원 가입 페이지
-router.get("/join", UserController.getJoin);
-
-// 로그인 페이지
-router.get("/login", UserController.getLogin);
-
-// 회원 정보 수정 페이지
-router.get("/changeInfo", UserController.getChange);
-
-// 마이페이지 메인
-router.get("/myPage", UserController.getMyPage);
 
 // 회원가입
 router.post("/join", UserController.join);
 
 // 아이디 중복 검사
-router.post("/checkId", UserController.checkId);
+router.get("/checkId", UserController.checkId);
 
-// 로그인
-router.post("/login", UserController.login);
+// 카카오 로그인
+router.get("/kakao", passport.authenticate("kakao"));
+router.get(
+  "/kakao/callback",
+  passport.authenticate("kakao", {
+    failureRedirect: "/?error=카카오로그인 실패",
+  }),
+  UserController.kakaoLogin
+);
+
+// 구글 로그인
+router.post("/login/google", UserController.googleLogin);
+
+// 로컬 로그인
+router.post("/login/local", UserController.localLogin);
 
 // 로그아웃
-router.post("/logout", UserController.logout);
+router.post("/logout", authenticateToken, UserController.logout);
 
 // 비밀번호 재설정
-router.post("/makeNewPw", UserController.makeNewPw);
+router.patch("/changePw", authenticateToken, UserController.changePw);
 
 // 회원 탈퇴
-router.patch("/deleteUser", UserController.deleteUser);
+router.delete("/deleteUser", authenticateToken, UserController.deleteUser);
 
 // 회원 정보 수정
-router.patch("/changeInfo", UserController.changeInfo);
+router.patch("/changeInfo", authenticateToken, UserController.changeInfo);
 
 // 닉네임 중복 검사
-router.post("/checkNickname", UserController.checkNickname);
+router.get("/checkNickname", authenticateToken, UserController.checkNickname);
 
 module.exports = router;

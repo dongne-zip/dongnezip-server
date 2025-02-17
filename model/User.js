@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "user",
@@ -9,47 +11,55 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         field: "id",
       },
-      userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
+      email: {
+        type: DataTypes.STRING(40),
+        allowNull: true,
         unique: true,
-        field: "user_id",
+        field: "email",
       },
       snsId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
+        type: DataTypes.STRING(40),
+        allowNull: true,
         unique: true,
-        field: "sns_id",
+        field: "snsId",
+      },
+      provider: {
+        type: DataTypes.ENUM("local", "kakao", "google"),
+        allowNull: false,
+        defaultValue: "local",
+        field: "provider",
       },
       password: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(100),
+        allowNull: true,
         field: "password",
       },
       userNm: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         field: "user_nm",
       },
       nickname: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         unique: true,
         field: "nickname",
       },
       profileImg: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(200),
+        allowNull: true,
         field: "profile_img",
       },
       phone: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
+        type: DataTypes.STRING(20),
+        allowNull: true,
         field: "phone",
       },
     },
     {
       freezeTableName: true,
       timestamps: true,
+      paranoid: true, // soft delete
     }
   );
   return User;
