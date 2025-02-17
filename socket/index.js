@@ -3,7 +3,7 @@ const socketIO = require("socket.io");
 function socketHandler(server) {
   const io = socketIO(server, {
     cors: {
-      origin: `http://localhost:${process.env.PORT}`,
+      origin: `http://localhost:3000`, // 통신하는 client
     },
   });
 
@@ -25,6 +25,7 @@ function socketHandler(server) {
     });
 
     socket.on("send", (msgData) => {
+      console.log("sendData", msgData);
       io.emit("message", {
         nick: msgData.myNick,
         message: msgData.msg,
