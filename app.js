@@ -7,11 +7,14 @@ const PORT = process.env.PORT;
 const prefix = "/api-server";
 const app = express();
 const server = http.createServer(app);
+const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
 //socketHandler(server);
-app.use(cors());
 
+app.use(cors());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
+// Swagger 설정 적용
+setupSwagger(app);
 
 // // 라우터 임포트
 // const indexRouter = require("./routes/index");
