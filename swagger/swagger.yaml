@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: 상품 등록 API
+  description: "이미지와 함께 상품 정보를 등록하는 API"
+  version: 1.0.0
+
+paths:
+  /api-server/item/addItem:
+    post:
+      summary: "상품 등록"
+      description: "이미지와 함께 상품 정보를 등록합니다."
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: "업로드할 이미지 파일 (다중 업로드 가능)"
+                categoryId:
+                  type: integer
+                  example: 1
+                  description: "카테고리 ID"
+                title:
+                  type: string
+                  example: "맥북 프로 16인치 팝니다"
+                  description: "상품 제목"
+                price:
+                  type: integer
+                  example: 30000
+                  description: "상품 가격"
+                detail:
+                  type: string
+                  example: "거의 새상품입니다. 실사용 1개월"
+                  description: "상품 상세 설명"
+                itemStatus:
+                  type: string
+                  example: "최상"
+                  description: "상품 상태"
+                latitude:
+                  type: number
+                  format: float
+                  example: 37.5665
+                  description: "위도 정보"
+                longitude:
+                  type: number
+                  format: float
+                  example: 126.9780
+                  description: "경도 정보"
+      responses:
+        "201":
+          description: "상품 등록 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "상품이 성공적으로 등록되었습니다."
+        "400":
+          description: "잘못된 요청"
+        "500":
+          description: "서버 오류"

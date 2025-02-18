@@ -1,21 +1,16 @@
-"use strict";
-
 const Sequelize = require("sequelize");
-const env = process.env.NODE_ENV || "development";
-const config = require(__dirname + "/../config/config.js")[env];
 const db = {};
+const fs = require("fs");
+const path = require("path");
+const env = process.env.NODE_ENV || "development";
+const config = require("../config/config.js")[env];
 
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  sequelize = new Sequelize(
-    config.database,
-    config.username,
-    config.password,
-    config
-  );
-}
+const sequelize = new Sequelize(
+  config.database,
+  config.username,
+  config.password,
+  config
+);
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
@@ -32,10 +27,8 @@ db.Map = require("./Map")(sequelize, Sequelize);
 db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
-// // /** 테이블 관계 설정 **/
 
 /** 테이블 관계 설정 **/
-
 // User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
 db.User.hasMany(db.Item, {
   foreignKey: "userId",
@@ -126,5 +119,6 @@ db.Map.hasOne(db.Item, {
   onDelete: "CASCADE",
 });
 db.Item.belongsTo(db.Map, { foreignKey: "mapId", targetKey: "id" });
+
 
 module.exports = db;
