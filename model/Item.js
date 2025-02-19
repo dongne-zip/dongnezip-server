@@ -9,6 +9,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
+      //판매자
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
