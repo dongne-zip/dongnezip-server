@@ -7,7 +7,6 @@ const {
   ItemImage,
   Sequelize,
 } = require("../model");
-
 const upload = require("../config/s3");
 require("dotenv").config();
 
@@ -173,14 +172,20 @@ exports.createItem = async (req, res) => {
 
 /** 전체 상품 조회 */
 // GET /api-server/item
-
 exports.getAllItems = async (req, res) => {
   try {
-    const { categoryId, regionId } = req.query;
+    let { categoryId, regionId } = req.query;
 
+    // 문자열로 넘어온 값을 정수로 변환
+    categoryId = parseInt(categoryId, 10);
+    regionId = parseInt(regionId, 10);
+
+    // 필터 조건을 설정할 객체
     const filter = {};
-    if (categoryId) filter.categoryId = categoryId;
-    if (regionId) filter.regionId = regionId;
+
+    // 0이 아닐 때만 필터링 (0이면 모든 데이터 조회)
+    if (categoryId > 0) filter.categoryId = categoryId;
+    if (regionId > 0) filter.regionId = regionId;
 
     const items = await Item.findAll({
       where: filter, // 필터링 적용
