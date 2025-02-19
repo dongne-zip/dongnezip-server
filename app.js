@@ -27,11 +27,9 @@ const itemRouter = require("./routes/item");
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
 
-
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);
 // app.use(`${prefix}/item`, itemRouter);
-
 
 sequelize
   .sync({ force: false })
