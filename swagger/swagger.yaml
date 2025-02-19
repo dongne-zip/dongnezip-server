@@ -134,6 +134,62 @@ paths:
         "500":
           description: "서버 오류"
 
+  /item/search:
+    get:
+      summary: "상품 검색"
+      description: "제목 또는 상세 설명을 기반으로 상품을 검색합니다."
+      parameters:
+        - name: keyword
+          in: query
+          description: "검색할 키워드 (상품 제목 또는 설명에서 검색됨)"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "검색 결과 반환"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "상품이 없습니다."
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Item"
+        "400":
+          description: "잘못된 요청 (쿼리 파라미터 오류 등)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "잘못된 요청입니다."
+        "500":
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "서버 오류가 발생했습니다."
+
 components:
   schemas:
     Item:

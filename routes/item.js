@@ -8,9 +8,9 @@ const upload = require("../config/s3");
 // GET /api-server/item
 router.get("/item", controller.getAllItems);
 
-// /** 상품 검색 */
-// // GET /api-server/item?keyword=검색어
-// router.get("/items", authenticateToken, controller.searchItems);
+/** 상품 검색 */
+// GET /api-server/item?keyword=검색어
+router.get("/search", controller.searchItems);
 
 // /** 지역 설정 */
 // // POST /api-server/item/pickRegion

@@ -9,6 +9,7 @@ const {
 } = require("../model");
 const upload = require("../config/s3");
 require("dotenv").config();
+const { Op } = require("sequelize");
 
 const KAKAO_API_KEY = process.env.KAKAO_API_KEY; // 카카오 REST API 키 입력
 
@@ -172,7 +173,6 @@ exports.createItem = async (req, res) => {
 
 /** 전체 상품 조회 */
 // GET /api-server/item
-
 exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId } = req.query;
@@ -218,6 +218,63 @@ exports.getAllItems = async (req, res) => {
     return res.status(200).json({ success: true, data: items });
   } catch (error) {
     console.error("Error fetching items:", error);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
+/** 상품 검색 */
+// GET /api-server/items?keyword=검색어
+exports.searchItems = async (req, res) => {
+  try {
+    let { keyword } = req.query;
+
+    // 검색어가 없으면 메시지 반환
+    if (!keyword) {
+      return res
+        .status(200)
+        .json({ success: true, message: "상품이 없습니다." });
+    }
+
+    const items = await Item.findAll({
+      where: {
+        [Op.or]: [
+          { title: { [Op.like]: `%${keyword}%` } }, // 제목 검색
+          { detail: { [Op.like]: `%${keyword}%` } }, // 상세 설명 검색
+        ],
+      },
+      include: [
+        { model: Category, attributes: ["category"] }, // 카테고리 조인
+        { model: Region, attributes: ["province", "district"] }, // 지역 조인
+        {
+          model: ItemImage,
+          attributes: ["imageUrl"],
+          limit: 1, // 첫 번째 이미지 하나만 가져오기
+          order: [["id", "ASC"]], // id 기준 오름차순 정렬
+          separate: true, // 별도의 쿼리 실행 (N+1 문제 방지)
+          required: false, // 이미지가 없어도 Item이 조회되도록 설정
+        },
+      ],
+      attributes: [
+        "id",
+        "userId",
+        "title",
+        "price",
+        "status",
+        "detail",
+        "itemStatus",
+      ],
+    });
+
+    // 검색 결과가 없을 경우 메시지 반환
+    if (items.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "상품이 없습니다." });
+    }
+
+    return res.status(200).json({ success: true, data: items });
+  } catch (error) {
+    console.error("Error searching items:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });
   }
 };
