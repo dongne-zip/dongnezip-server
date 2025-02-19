@@ -163,6 +163,7 @@ paths:
         "500":
           description: "서버 오류"
 
+
   /item/favorites/{itemId}:
     delete:
       summary: "상품 찜 취소"
@@ -192,17 +193,20 @@ paths:
           description: "잘못된 요청 (필수값 없음)"
         "404":
           description: "찜한 상품이 존재하지 않음"
+
         "500":
           description: "서버 오류"
 
 components:
   schemas:
+
     Item:
       type: object
       properties:
         id:
           type: integer
           example: 1
+
         userId:
           type: integer
           example: 101
