@@ -6,7 +6,7 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const prefix = "/api-server";
 const app = express();
-const socketHandler = require("./socket/index");
+const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
 
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
@@ -27,11 +27,9 @@ const itemRouter = require("./routes/item");
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
 
-
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);
 // app.use(`${prefix}/item`, itemRouter);
-
 
 sequelize
   .sync({ force: false })
