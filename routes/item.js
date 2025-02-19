@@ -40,9 +40,9 @@ router.post("/addItem", upload.array("images", 5), controller.createItem);
 // POST /api-server/item/favorites
 router.post("/favorites", controller.addToFavorites);
 
-// /** 상품 찜 취소 */
-// // DELETE /api-server/item/favorites/:itemId
-// router.delete("/favorites/:itemId", authenticateToken, controller.removeFromFavorites);
+/** 상품 찜 취소 */
+// DELETE /api-server/item/favorites/:itemId
+router.delete("/favorites/:itemId", controller.removeFromFavorites);
 
 // /** 찜한 상품 목록 조회 */
 // // GET /api-server/item/favorites

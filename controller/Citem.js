@@ -324,3 +324,42 @@ exports.addToFavorites = async (req, res) => {
     return res.status(500).json({ success: false, message: "서버 오류" });
   }
 };
+
+/** 상품 찜 취소 */
+// DELETE /api-server/item/favorites/:itemId
+exports.removeFromFavorites = async (req, res) => {
+  try {
+    console.log("Received DELETE request:", req.params);
+
+    const { itemId } = req.params;
+    const userId = 1; // 임시로 저장 (실제 로그인 유저로 변경해야 함)
+
+    // 필수 값 확인
+    if (!userId || !itemId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "유저 ID와 상품 ID가 필요합니다." });
+    }
+
+    // 찜한 상품 존재 여부 확인
+    const favorite = await Favorite.findOne({
+      where: { userId, itemId },
+    });
+
+    if (!favorite) {
+      return res
+        .status(404)
+        .json({ success: false, message: "찜한 상품이 존재하지 않습니다." });
+    }
+
+    // 찜한 상품 삭제
+    await Favorite.destroy({ where: { userId, itemId } });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "찜한 상품이 취소되었습니다." });
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
