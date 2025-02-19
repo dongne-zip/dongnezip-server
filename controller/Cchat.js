@@ -6,7 +6,6 @@ const { getIO } = require("../socket/index");
 exports.chat = async (req, res) => {
   try {
     const message = await ChatMessage.findAll();
-
     const room = await ChatRoom.findAll();
 
     res.json({ message: message, room: room });
