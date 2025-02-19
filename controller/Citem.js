@@ -6,6 +6,7 @@ const {
   Region,
   ItemImage,
   Sequelize,
+  Favorite,
 } = require("../model");
 const upload = require("../config/s3");
 require("dotenv").config();
@@ -275,6 +276,51 @@ exports.searchItems = async (req, res) => {
     return res.status(200).json({ success: true, data: items });
   } catch (error) {
     console.error("Error searching items:", error);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
+/** 상품 찜하기 */
+// POST /api-server/item/favorites
+exports.addToFavorites = async (req, res) => {
+  try {
+    const { itemId } = req.body; // 요청에서 userId, itemId 받기
+    userId = 1; //임시로 저장
+
+    // 필수 값 확인
+    if (!userId || !itemId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "유저 ID와 상품 ID가 필요합니다." });
+    }
+
+    // 해당 아이템이 존재하는지 확인
+    const item = await Item.findByPk(itemId);
+    if (!item) {
+      return res
+        .status(404)
+        .json({ success: false, message: "존재하지 않는 상품입니다." });
+    }
+
+    // 이미 찜한 상품인지 확인
+    const existingFavorite = await Favorite.findOne({
+      where: { userId, itemId },
+    });
+
+    if (existingFavorite) {
+      return res
+        .status(409)
+        .json({ success: false, message: "이미 찜한 상품입니다." });
+    }
+
+    // 찜하기 추가
+    await Favorite.create({ userId, itemId });
+
+    return res
+      .status(201)
+      .json({ success: true, message: "상품을 찜했습니다." });
+  } catch (error) {
+    console.error("Error adding to favorites:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });
   }
 };
