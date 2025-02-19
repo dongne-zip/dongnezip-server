@@ -33,23 +33,87 @@ db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
 /** 테이블 관계 설정 **/
-// User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
+
+// 1) User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
 db.User.hasMany(db.Item, {
   foreignKey: "userId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Item.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
-
-// User → Transaction (1:N) - 사용자가 탈퇴하면 거래 내역 삭제
-db.User.hasMany(db.Transaction, {
+db.Item.belongsTo(db.User, {
   foreignKey: "userId",
+  targetKey: "id",
+});
+
+// 2) User → Transaction (판매자 관계)
+db.User.hasMany(db.Transaction, {
+  foreignKey: "seller_id",
+  sourceKey: "id",
+  as: "SellingTransactions",
+});
+db.Transaction.belongsTo(db.User, {
+  foreignKey: "seller_id",
+  targetKey: "id",
+  as: "Seller",
+});
+
+// 3) User → Transaction (구매자 관계)
+db.User.hasMany(db.Transaction, {
+  foreignKey: "buyer_id",
+  sourceKey: "id",
+  as: "BuyingTransactions",
+});
+db.Transaction.belongsTo(db.User, {
+  foreignKey: "buyer_id",
+  targetKey: "id",
+  as: "Buyer",
+});
+
+// 4) Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
+db.Item.hasMany(db.ItemImage, {
+  foreignKey: "itemId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Transaction.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
+db.ItemImage.belongsTo(db.Item, {
+  foreignKey: "itemId",
+  targetKey: "id",
+});
 
-// User → Favorite (1:N) - 사용자가 탈퇴하면 찜 목록 삭제
+// 5) Item → Favorite (1:N) - 상품이 삭제되면 찜 목록에서도 삭제
+db.Item.hasMany(db.Favorite, {
+  foreignKey: "itemId",
+  sourceKey: "id",
+  onDelete: "CASCADE",
+});
+db.Favorite.belongsTo(db.Item, {
+  foreignKey: "itemId",
+  targetKey: "id",
+});
+
+// 6) Item → Transaction (1:N) - 상품이 삭제되더라도 거래 내역은 유지 (SET NULL)
+db.Item.hasMany(db.Transaction, {
+  foreignKey: "itemId",
+  sourceKey: "id",
+  onDelete: "SET NULL",
+});
+db.Transaction.belongsTo(db.Item, {
+  foreignKey: "itemId",
+  targetKey: "id",
+});
+
+// 7) Item → ChatRoom (1:N) - 상품이 삭제되더라도 채팅방은 유지 (SET NULL)
+db.Item.hasMany(db.ChatRoom, {
+  foreignKey: "itemId",
+  sourceKey: "id",
+  onDelete: "SET NULL",
+});
+db.ChatRoom.belongsTo(db.Item, {
+  foreignKey: "itemId",
+  targetKey: "id",
+});
+
+// 8) User → Favorite (1:N) - 사용자가 탈퇴하면 찜 목록 삭제
 db.User.hasMany(db.Favorite, {
   foreignKey: "userId",
   sourceKey: "id",
@@ -57,7 +121,7 @@ db.User.hasMany(db.Favorite, {
 });
 db.Favorite.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
-// User → ChatRoom (1:N) - 사용자가 탈퇴하면 관련 채팅방 삭제
+// 9) User → ChatRoom (1:N) - 사용자가 탈퇴하면 관련 채팅방 삭제
 db.User.hasMany(db.ChatRoom, {
   foreignKey: "userId",
   sourceKey: "id",
@@ -65,7 +129,7 @@ db.User.hasMany(db.ChatRoom, {
 });
 db.ChatRoom.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
-// User → ChatMessage (1:N) - 사용자가 탈퇴하면 보낸 메시지 삭제
+// 10) User → ChatMessage (1:N) - 사용자가 탈퇴하면 보낸 메시지 삭제
 db.User.hasMany(db.ChatMessage, {
   foreignKey: "userId",
   sourceKey: "id",
@@ -73,39 +137,7 @@ db.User.hasMany(db.ChatMessage, {
 });
 db.ChatMessage.belongsTo(db.User, { foreignKey: "userId", targetKey: "id" });
 
-// Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
-db.Item.hasMany(db.ItemImage, {
-  foreignKey: "itemId",
-  sourceKey: "id",
-  onDelete: "CASCADE",
-});
-db.ItemImage.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
-
-// Item → Favorite (1:N) - 상품이 삭제되면 찜 목록에서도 삭제
-db.Item.hasMany(db.Favorite, {
-  foreignKey: "itemId",
-  sourceKey: "id",
-  onDelete: "CASCADE",
-});
-db.Favorite.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
-
-// Item → Transaction (1:N) - 상품이 삭제되더라도 거래 내역은 유지 (SET NULL)
-db.Item.hasMany(db.Transaction, {
-  foreignKey: "itemId",
-  sourceKey: "id",
-  onDelete: "SET NULL",
-});
-db.Transaction.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
-
-// Item → ChatRoom (1:N) - 상품이 삭제되더라도 채팅방은 유지 (SET NULL)
-db.Item.hasMany(db.ChatRoom, {
-  foreignKey: "itemId",
-  sourceKey: "id",
-  onDelete: "SET NULL",
-});
-db.ChatRoom.belongsTo(db.Item, { foreignKey: "itemId", targetKey: "id" });
-
-// ChatRoom → ChatMessage (1:N) - 채팅방이 삭제되면 메시지도 삭제
+// 11) ChatRoom → ChatMessage (1:N) - 채팅방이 삭제되면 메시지도 삭제
 db.ChatRoom.hasMany(db.ChatMessage, {
   foreignKey: "roomId",
   sourceKey: "id",
@@ -116,15 +148,18 @@ db.ChatMessage.belongsTo(db.ChatRoom, {
   targetKey: "id",
 });
 
-// Map → Item (1:1) - 상품이 삭제되면 지도 정보도 삭제
+// 12) Map → Item (1:1) - 상품이 삭제되면 지도 정보도 삭제
 db.Map.hasOne(db.Item, {
   foreignKey: "mapId",
   sourceKey: "id",
   onDelete: "CASCADE",
 });
-db.Item.belongsTo(db.Map, { foreignKey: "mapId", targetKey: "id" });
+db.Item.belongsTo(db.Map, {
+  foreignKey: "mapId",
+  targetKey: "id",
+});
 
-// Category → Item (1:N) - 카테고리가 삭제되더라도 상품은 유지 (SET NULL)
+// 13) Category → Item (1:N) - 카테고리가 삭제되더라도 상품은 유지 (SET NULL)
 db.Category.hasMany(db.Item, {
   foreignKey: "categoryId",
   sourceKey: "id",
@@ -135,18 +170,14 @@ db.Item.belongsTo(db.Category, {
   targetKey: "id",
 });
 
-db.Region.hasMany(db.Item, { foreignKey: "regionId", onDelete: "CASCADE" });
-db.Item.belongsTo(db.Region, { foreignKey: "regionId", onDelete: "CASCADE" });
-
-// Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
-db.Item.hasMany(db.ItemImage, {
-  foreignKey: "itemId",
-  sourceKey: "id",
+// 14) Region → Item (1:N) - 지역이 삭제되면 상품도 삭제
+db.Region.hasMany(db.Item, {
+  foreignKey: "regionId",
   onDelete: "CASCADE",
 });
-db.ItemImage.belongsTo(db.Item, {
-  foreignKey: "itemId",
-  targetKey: "id",
+db.Item.belongsTo(db.Region, {
+  foreignKey: "regionId",
+  onDelete: "CASCADE",
 });
 
 module.exports = db;

@@ -9,7 +9,7 @@ const upload = require("../config/s3");
 router.get("/item", controller.getAllItems);
 
 /** 상품 검색 */
-// GET /api-server/item?keyword=검색어
+// GET /api-server/search?keyword=검색어
 router.get("/search", controller.searchItems);
 
 // /** 지역 설정 */
@@ -31,10 +31,6 @@ router.post("/addItem", upload.array("images", 5), controller.createItem);
 // /** 판매 글 삭제 */
 // // DELETE /api-server/item/deleteItem
 // router.delete("/deleteItem", authenticateToken, controller.deleteItem);
-
-// /** 거래 희망 장소 저장 */
-// // POST /api-server/item/pickRegion
-// router.post("/pickRegion", authenticateToken, controller.setRegion);
 
 /** 상품 찜하기 */
 // POST /api-server/item/favorites

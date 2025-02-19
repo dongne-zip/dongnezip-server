@@ -7,6 +7,7 @@ const {
   ItemImage,
   Sequelize,
   Favorite,
+  Transaction,
 } = require("../model");
 const upload = require("../config/s3");
 require("dotenv").config();
@@ -172,48 +173,80 @@ exports.createItem = async (req, res) => {
   }
 };
 
-/** 전체 상품 조회 */
+/** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가) */
 // GET /api-server/item
+
 exports.getAllItems = async (req, res) => {
   try {
-    let { categoryId, regionId } = req.query;
+    let { categoryId, regionId, status, sortBy } = req.query;
 
-    // 문자열로 넘어온 값을 정수로 변환 (null 또는 undefined 방지)
-    categoryId = categoryId ? parseInt(categoryId, 10) : 0;
-    regionId = regionId ? parseInt(regionId, 10) : 0;
-
-    // 필터 조건을 설정할 객체
+    // 1) 필터 설정
     const filter = {};
+    if (categoryId && parseInt(categoryId, 10) > 0) {
+      filter.categoryId = parseInt(categoryId, 10);
+    }
+    if (regionId && parseInt(regionId, 10) > 0) {
+      filter.regionId = parseInt(regionId, 10);
+    }
 
-    // categoryId가 0보다 크면 필터링 (0이면 전체 카테고리)
-    if (categoryId > 0) filter.categoryId = categoryId;
+    // 2) attributes: 거래 상태 + 인기순 계산 (필요할 때만)
+    //   - MAX(buyer_id) => 상품의 거래 여부
+    //   - COUNT(Favorites.id) => 찜 개수
+    const attributes = [
+      "id",
+      "userId",
+      "title",
+      "price",
+      "detail",
+      "itemStatus",
+      [Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")), "buyerId"],
+      [Sequelize.fn("COUNT", Sequelize.col("Favorites.id")), "favCount"],
+      // createdAt 등이 필요하면 추가
+      "createdAt",
+    ];
 
-    // regionId가 0보다 크면 필터링 (0이면 전체 지역)
-    if (regionId > 0) filter.regionId = regionId;
+    // 3) group 설정 (거래 상태와 인기순을 집계 함수로 구하므로 group 필요)
+    const group = ["Item.id"];
 
+    // 4) 거래 상태 필터 (HAVING)
+    let havingCondition = {};
+    if (status === "available") {
+      havingCondition.buyerId = { [Op.eq]: null };
+    } else if (status === "completed") {
+      havingCondition.buyerId = { [Op.not]: null };
+    }
+
+    // 5) 정렬 로직
+    // 최신순 → createdAt DESC
+    // 인기순 → favCount DESC
+    let order = [];
+    if (sortBy === "popular") {
+      order = [[Sequelize.literal("favCount"), "DESC"]];
+    } else {
+      // 기본값 혹은 sortBy=latest인 경우
+      order = [["createdAt", "DESC"]];
+    }
+
+    // 6) findAll 쿼리
     const items = await Item.findAll({
-      where: Object.keys(filter).length > 0 ? filter : {}, // 필터 조건 적용
+      where: filter,
+      attributes,
       include: [
-        { model: Category, attributes: ["category"] }, // 카테고리 조인
-        { model: Region, attributes: ["province", "district"] }, // 지역 조인
         {
-          model: ItemImage,
-          attributes: ["imageUrl"],
-          limit: 1, // 첫 번째 이미지 하나만 가져오기
-          order: [["id", "ASC"]], // id 기준 오름차순 정렬
-          separate: true, // 별도의 쿼리 실행 (N+1 문제 방지)
-          required: false, // 이미지가 없어도 Item이 조회되도록 설정
+          model: Transaction,
+          attributes: [],
+          required: false,
+        },
+        {
+          model: Favorite,
+          attributes: [],
+          required: false,
         },
       ],
-      attributes: [
-        "id",
-        "userId",
-        "title",
-        "price",
-        "status",
-        "detail",
-        "itemStatus",
-      ],
+      group,
+      having:
+        Object.keys(havingCondition).length > 0 ? havingCondition : undefined,
+      order,
     });
 
     return res.status(200).json({ success: true, data: items });
