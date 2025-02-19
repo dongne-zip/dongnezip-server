@@ -172,23 +172,26 @@ exports.createItem = async (req, res) => {
 
 /** 전체 상품 조회 */
 // GET /api-server/item
+
 exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId } = req.query;
 
-    // 문자열로 넘어온 값을 정수로 변환
-    categoryId = parseInt(categoryId, 10);
-    regionId = parseInt(regionId, 10);
+    // 문자열로 넘어온 값을 정수로 변환 (null 또는 undefined 방지)
+    categoryId = categoryId ? parseInt(categoryId, 10) : 0;
+    regionId = regionId ? parseInt(regionId, 10) : 0;
 
     // 필터 조건을 설정할 객체
     const filter = {};
 
-    // 0이 아닐 때만 필터링 (0이면 모든 데이터 조회)
+    // categoryId가 0보다 크면 필터링 (0이면 전체 카테고리)
     if (categoryId > 0) filter.categoryId = categoryId;
+
+    // regionId가 0보다 크면 필터링 (0이면 전체 지역)
     if (regionId > 0) filter.regionId = regionId;
 
     const items = await Item.findAll({
-      where: filter, // 필터링 적용
+      where: Object.keys(filter).length > 0 ? filter : {}, // 필터 조건 적용
       include: [
         { model: Category, attributes: ["category"] }, // 카테고리 조인
         { model: Region, attributes: ["province", "district"] }, // 지역 조인
