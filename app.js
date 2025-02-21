@@ -10,7 +10,7 @@ require("./passport/localStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
-=======
+
 const PORT = 8080;
 require("dotenv").config();
 
@@ -34,7 +34,6 @@ app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받
 // Swagger 설정 적용
 setupSwagger(app);
 
-
 // // 라우터 임포트
 const indexRouter = require("./routes/index");
 const chatRouter = require("./routes/chat");
@@ -43,7 +42,6 @@ const itemRouter = require("./routes/item");
 
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
-
 
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);

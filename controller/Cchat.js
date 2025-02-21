@@ -75,4 +75,4 @@ exports.messageAsRead = async (req, res) => {
 
     res.json(updateCount);
   } catch (err) {
-    console.error(err);}
+    console.error(err)};
