@@ -16,6 +16,6 @@ module.exports = () => {
   });
 
   local();
-  kakao();
-  google();
+  // kakao();
+  // google();
 };

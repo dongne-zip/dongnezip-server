@@ -9,10 +9,16 @@ const app = express();
 const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
 
-const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
+const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기.
 socketHandler(server);
 
 app.use(cors());
+<<<<<<< HEAD
+app.use(cookieParser(process.env.COOKIE_SECRET));
+// passport
+app.use(passport.initialize());
+=======
+>>>>>>> parent of 06be73c (feat/add user api)
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
 // Swagger 설정 적용
@@ -27,9 +33,11 @@ const itemRouter = require("./routes/item");
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
 
+
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);
 // app.use(`${prefix}/item`, itemRouter);
+
 
 sequelize
   .sync({ force: false })

@@ -59,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       freezeTableName: true,
       timestamps: true,
-      paranoid: true, // soft delete
+      // paranoid: true,
     }
   );
   return User;

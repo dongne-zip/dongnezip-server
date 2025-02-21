@@ -13,6 +13,10 @@ module.exports = () => {
         passReqToCallback: false,
       },
       async (email, password, done) => {
+<<<<<<< HEAD
+        console.log("로컬 정보");
+=======
+>>>>>>> parent of 06be73c (feat/add user api)
         try {
           const exUser = await User.findOne({ where: { email } });
           if (exUser) {
