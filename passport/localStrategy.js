@@ -13,6 +13,7 @@ module.exports = () => {
         passReqToCallback: false,
       },
       async (email, password, done) => {
+        console.log("로컬 정보");
         try {
           const exUser = await User.findOne({ where: { email } });
           if (exUser) {

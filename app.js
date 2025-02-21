@@ -14,7 +14,7 @@ const app = express();
 const socketHandler = require("./socket/index");
 const server = http.createServer(app);
 
-const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
+const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기.
 socketHandler(server);
 
 app.use(cors());

@@ -16,7 +16,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 
 /* api */
 
-/* 이메일 인증 */
+/* 이메일 인증! */
 
 // 인증 번호 이메일 전송
 exports.sendCode = async (req, res, next) => {
