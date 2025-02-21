@@ -1,5 +1,3 @@
-"use strict";
-
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "user",
@@ -34,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         field: "password",
       },
-      userNm: {
+      name: {
         type: DataTypes.STRING(20),
         allowNull: true,
         field: "user_nm",
@@ -50,16 +48,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         field: "profile_img",
       },
-      phone: {
-        type: DataTypes.STRING(20),
-        allowNull: true,
-        field: "phone",
-      },
     },
     {
       freezeTableName: true,
       timestamps: true,
-      paranoid: true, // soft delete
+      // paranoid: true, // soft delete
     }
   );
   return User;
