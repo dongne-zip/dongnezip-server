@@ -1,4 +1,4 @@
-<<<<<<< Updated upstream
+
 const { ChatMessage, ChatRoom } = require("../model");
 const { Op } = require("sequelize");
 const { getIO } = require("../socket/index");
@@ -75,13 +75,4 @@ exports.messageAsRead = async (req, res) => {
 
     res.json(updateCount);
   } catch (err) {
-    console.error(err);
-=======
-exports.chat = async (req, res) => {
-  try {
-    res.send("chat api-tests");
-  } catch (err) {
-    console.log("chat-api err", err);
->>>>>>> Stashed changes
-  }
-};
+    console.error(err);}
