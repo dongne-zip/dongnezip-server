@@ -1,4 +1,5 @@
 const socketIO = require("socket.io");
+<<<<<<< Updated upstream
 const { ChatMessage } = require("../model/index");
 
 let io;
@@ -58,3 +59,15 @@ function getIO() {
 }
 
 module.exports = { socketHandler, getIO };
+=======
+
+function socketHandler(server) {
+  const io = socketIO(server, {
+    cors: {
+      origin: "http://localhost:8080",
+    },
+  });
+}
+
+module.exports = socketHandler;
+>>>>>>> Stashed changes

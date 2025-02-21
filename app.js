@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
-require("dotenv").config();
 const cors = require("cors");
+<<<<<<< Updated upstream
 const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
@@ -10,12 +10,24 @@ require("./passport/localStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
+=======
+const PORT = 8080;
+require("dotenv").config();
+>>>>>>> Stashed changes
 const app = express();
 const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
+<<<<<<< Updated upstream
 
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
+=======
+const socketHandler = require("./socket/index");
+>>>>>>> Stashed changes
 socketHandler(server);
+
+// 라우터 모듈
+const indexRouter = require("./routes/index");
+const chatRouter = require("./routes/chat");
 
 app.use(cors());
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -25,6 +37,7 @@ app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받
 // Swagger 설정 적용
 setupSwagger(app);
 
+<<<<<<< Updated upstream
 // // 라우터 임포트
 const indexRouter = require("./routes/index");
 const chatRouter = require("./routes/chat");
@@ -33,6 +46,12 @@ const itemRouter = require("./routes/item");
 
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
+=======
+const prefix = "/api-server";
+// 라우터 연결
+// app.use(`${prefix}/`, indexRouter);
+app.use(`${prefix}/chat`, chatRouter);
+>>>>>>> Stashed changes
 
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);

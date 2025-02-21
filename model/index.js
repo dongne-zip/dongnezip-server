@@ -1,5 +1,6 @@
 const Sequelize = require("sequelize");
 const db = {};
+<<<<<<< Updated upstream
 const fs = require("fs");
 const path = require("path");
 const env = process.env.NODE_ENV || "development";
@@ -11,10 +12,15 @@ const sequelize = new Sequelize(
   config.password,
   config
 );
+=======
+
+let sequelize;
+>>>>>>> Stashed changes
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
+<<<<<<< Updated upstream
 // 모델 등록
 db.Item = require("./Item")(sequelize, Sequelize);
 db.ItemImage = require("./ItemImage")(sequelize, Sequelize);
@@ -176,5 +182,13 @@ db.Item.belongsTo(db.Region, {
   onDelete: "CASCADE",
 });
 
+=======
+db.user = require("./User");
+db.category = require("./Category");
+db.chat_room = require("./Chat_room");
+db.chat_message = require("./Chat_message");
+db.item = require("./Item");
+db.map = require("./Map");
+>>>>>>> Stashed changes
 
 module.exports = db;
