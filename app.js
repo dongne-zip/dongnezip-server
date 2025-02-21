@@ -6,12 +6,12 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
-require("./passport/kakaoStrategy")();
-require("./passport/googleStrategy")();
+// require("./passport/kakaoStrategy")();
+// require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
 const app = express();
-const socketHandler = require("./socket/index");
+const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
 
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
