@@ -173,12 +173,13 @@ exports.createItem = async (req, res) => {
   }
 };
 
-/** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가) */
+/** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가 + 사용자 찜 여부 포함) */
 // GET /api-server/item
-
 exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId, status, sortBy } = req.query;
+    const userId = 1;
+    //const userId = req.user?.id || null; //  현재 로그인한 사용자의 ID
 
     // 1) 필터 설정
     const filter = {};
@@ -189,9 +190,7 @@ exports.getAllItems = async (req, res) => {
       filter.regionId = parseInt(regionId, 10);
     }
 
-    // 2) attributes: 거래 상태 + 인기순 계산 (필요할 때만)
-    //   - MAX(buyer_id) => 상품의 거래 여부
-    //   - COUNT(Favorites.id) => 찜 개수
+    // 2) attributes: 거래 상태 + 인기순 계산 + 찜 여부 추가
     const attributes = [
       "id",
       "userId",
@@ -201,12 +200,11 @@ exports.getAllItems = async (req, res) => {
       "itemStatus",
       [Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")), "buyerId"],
       [Sequelize.fn("COUNT", Sequelize.col("Favorites.id")), "favCount"],
-      // createdAt 등이 필요하면 추가
-      "createdAt",
+      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"], // ✅ 대표 이미지 가져오기
     ];
 
-    // 3) group 설정 (거래 상태와 인기순을 집계 함수로 구하므로 group 필요)
-    const group = ["Item.id"];
+    // 3) group 설정
+    const group = ["Item.id", "Region.id", "Category.id"];
 
     // 4) 거래 상태 필터 (HAVING)
     let havingCondition = {};
@@ -217,17 +215,14 @@ exports.getAllItems = async (req, res) => {
     }
 
     // 5) 정렬 로직
-    // 최신순 → createdAt DESC
-    // 인기순 → favCount DESC
     let order = [];
     if (sortBy === "popular") {
       order = [[Sequelize.literal("favCount"), "DESC"]];
     } else {
-      // 기본값 혹은 sortBy=latest인 경우
-      order = [["createdAt", "DESC"]];
+      order = [["createdAt", "DESC"]]; // 기본값 (최신순)
     }
 
-    // 6) findAll 쿼리
+    // 6) findAll 쿼리 실행
     const items = await Item.findAll({
       where: filter,
       attributes,
@@ -238,7 +233,23 @@ exports.getAllItems = async (req, res) => {
           required: false,
         },
         {
-          model: Favorite,
+          model: Favorite, // ✅ 사용자의 찜 여부 확인
+          attributes: ["userId"],
+          required: false,
+          where: userId ? { userId } : undefined, // 현재 사용자의 찜한 상품만 조회
+        },
+        {
+          model: Region,
+          attributes: ["id", "district"],
+          required: false,
+        },
+        {
+          model: Category,
+          attributes: ["id", "category"],
+          required: false,
+        },
+        {
+          model: ItemImage,
           attributes: [],
           required: false,
         },
@@ -249,7 +260,13 @@ exports.getAllItems = async (req, res) => {
       order,
     });
 
-    return res.status(200).json({ success: true, data: items });
+    // 7) 프론트엔드에 전달할 데이터 변환 (찜 여부 추가)
+    const responseData = items.map((item) => ({
+      ...item.get({ plain: true }), // Sequelize 객체를 JSON으로 변환
+      isFavorite: item.Favorites && item.Favorites.length > 0,
+    }));
+
+    return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     console.error("Error fetching items:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });

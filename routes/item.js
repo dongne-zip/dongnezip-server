@@ -5,11 +5,11 @@ const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 
 /** 전체 상품 조회 */
-// GET /api-server/item
+// GET /api-server/item/item
 router.get("/item", controller.getAllItems);
 
 /** 상품 검색 */
-// GET /api-server/search?keyword=검색어
+// GET /api-server/item/search?keyword=검색어
 router.get("/search", controller.searchItems);
 
 // /** 지역 설정 */

@@ -8,8 +8,9 @@ const prefix = "/api-server";
 const app = express();
 const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
-
+const swaggerUi = require("swagger-ui-express");
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
+
 socketHandler(server);
 
 app.use(cors());
@@ -29,7 +30,7 @@ app.use(prefix, indexRouter);
 
 // // 개별 라우터 설정 (/api-server/user, /api-server/item 등)
 app.use(`${prefix}/chat`, chatRouter);
-// app.use(`${prefix}/item`, itemRouter);
+app.use(`${prefix}/item`, itemRouter);
 
 sequelize
   .sync({ force: false })
