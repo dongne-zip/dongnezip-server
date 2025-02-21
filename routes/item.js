@@ -12,6 +12,10 @@ router.get("/item", controller.getAllItems);
 // GET /api-server/item/search?keyword=검색어
 router.get("/search", controller.searchItems);
 
+/** 상품 상세 조회 */
+// GET /api-server/item/:itemId
+router.get("/:itemId", controller.getItemDetail);
+
 // /** 지역 설정 */
 // // POST /api-server/item/pickRegion
 // router.post("/pickRegion", authenticateToken, controller.setRegion);

@@ -200,7 +200,7 @@ exports.getAllItems = async (req, res) => {
       "itemStatus",
       [Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")), "buyerId"],
       [Sequelize.fn("COUNT", Sequelize.col("Favorites.id")), "favCount"],
-      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"], // ✅ 대표 이미지 가져오기
+      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"], // 대표 이미지 가져오기
     ];
 
     // 3) group 설정
@@ -233,7 +233,7 @@ exports.getAllItems = async (req, res) => {
           required: false,
         },
         {
-          model: Favorite, // ✅ 사용자의 찜 여부 확인
+          model: Favorite, // 사용자의 찜 여부 확인
           attributes: ["userId"],
           required: false,
           where: userId ? { userId } : undefined, // 현재 사용자의 찜한 상품만 조회
@@ -273,6 +273,82 @@ exports.getAllItems = async (req, res) => {
   }
 };
 
+/** 특정 상품 상세 조회 */
+exports.getItemDetail = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const userId = 1; // 또는 req.user?.id || null;
+
+    //  상품 조회
+    const item = await Item.findOne({
+      where: { id: itemId },
+      attributes: [
+        "id",
+        "userId",
+        "title",
+        "price",
+        "detail",
+        "itemStatus",
+        "categoryId",
+        "regionId",
+        "createdAt",
+        [
+          Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
+          "imageUrls",
+        ], //  여러 이미지 가져오기
+      ],
+      include: [
+        {
+          model: Favorite,
+          attributes: [], // `id` 없이 존재 여부만 확인
+          required: false,
+          where: userId ? { userId } : undefined, //  사용자의 찜 여부 확인
+        },
+        {
+          model: Region,
+          attributes: ["id", "district"],
+          required: false,
+        },
+        {
+          model: Category,
+          attributes: ["id", "category"],
+          required: false,
+        },
+        {
+          model: ItemImage,
+          attributes: [],
+          required: false,
+        },
+      ],
+      group: ["Item.id", "Region.id", "Category.id"],
+    });
+
+    if (!item) {
+      return res
+        .status(404)
+        .json({ success: false, message: "상품을 찾을 수 없습니다." });
+    }
+
+    // 여러 이미지 가져오기
+    const imageUrls = item.imageUrls ? item.imageUrls.split(",") : [];
+
+    // 사용자가 찜했는지 여부 확인
+    const isFavorite = !!item.Favorites; // `Favorites`가 존재하면 true, 없으면 false
+
+    // 응답 데이터 변환
+    const responseData = {
+      ...item.get({ plain: true }),
+      isFavorite, // 사용자가 찜했는지 여부 추가
+      images: imageUrls, // 여러 이미지 배열 변환
+    };
+
+    return res.status(200).json({ success: true, data: responseData });
+  } catch (error) {
+    console.error("Error fetching item details:", error);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
 /** 상품 검색 */
 // GET /api-server/items?keyword=검색어
 exports.searchItems = async (req, res) => {
@@ -295,7 +371,7 @@ exports.searchItems = async (req, res) => {
       },
       include: [
         { model: Category, attributes: ["category"] }, // 카테고리 조인
-        { model: Region, attributes: ["province", "district"] }, // 지역 조인
+        { model: Region, attributes: ["district"] }, // 지역 조인
         {
           model: ItemImage,
           attributes: ["imageUrl"],
@@ -305,15 +381,7 @@ exports.searchItems = async (req, res) => {
           required: false, // 이미지가 없어도 Item이 조회되도록 설정
         },
       ],
-      attributes: [
-        "id",
-        "userId",
-        "title",
-        "price",
-        "status",
-        "detail",
-        "itemStatus",
-      ],
+      attributes: ["id", "userId", "title", "price", "itemStatus", "detail"],
     });
 
     // 검색 결과가 없을 경우 메시지 반환

@@ -13,8 +13,8 @@ paths:
     get:
       summary: "전체 상품 조회"
       description: >
-        카테고리(`categoryId`), 지역(`regionId`), 거래 상태(`status`)를 기준으로 상품을 필터링하여 조회합니다.  
-        각 상품에는 대표 이미지(`thumbnailUrl`), 사용자의 찜 여부(`isFavorited`), 지역명(`region.name`)이 포함됩니다.  
+        카테고리(`categoryId`), 지역(`regionId`), 거래 상태(`status`)를 기준으로 상품을 필터링하여 조회합니다.
+        각 상품에는 대표 이미지가 포함됩니다.  
         **sortBy** 파라미터를 통해 최신순(`latest`) 또는 인기순(`popular`)으로 정렬할 수 있습니다.
       parameters:
         - name: categoryId
@@ -31,20 +31,14 @@ paths:
             type: integer
         - name: status
           in: query
-          description: >
-            거래 상태 필터:  
-            - `available` → 거래 가능 (아직 구매자가 없음)  
-            - `completed` → 거래 완료 (구매자 존재)
+          description: "거래 상태 필터 (available = 거래 가능, completed = 거래 완료)"
           required: false
           schema:
             type: string
             enum: [available, completed]
         - name: sortBy
           in: query
-          description: >
-            정렬 기준 선택:  
-            - `latest` (기본값) → 최신 등록 순  
-            - `popular` → 인기순 (찜 많은 순)
+          description: "정렬 기준 (latest=최신순, popular=인기순)"
           required: false
           schema:
             type: string
@@ -68,7 +62,7 @@ paths:
         "400":
           description: "잘못된 요청 (쿼리 파라미터 오류 등)"
         "500":
-          description: "서버 오류 (내부 에러 발생)"
+          description: "서버 오류"
 
   /item/addItem:
     post:
@@ -112,6 +106,95 @@ paths:
         "500":
           description: "서버 오류"
 
+  /item/search:
+    get:
+      summary: "상품 검색"
+      description: "제목 또는 상세 설명을 기반으로 상품을 검색합니다."
+      parameters:
+        - name: keyword
+          in: query
+          description: "검색할 키워드 (상품 제목 또는 설명에서 검색됨)"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "검색 결과 반환"
+        "400":
+          description: "잘못된 요청"
+        "500":
+          description: "서버 오류"
+
+  /item/favorites:
+    post:
+      summary: "상품 찜하기"
+      description: "사용자가 특정 상품을 찜 목록에 추가합니다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemId:
+                  type: integer
+                  example: 1
+                  description: "찜할 상품의 ID"
+      responses:
+        "201":
+          description: "찜하기 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "상품을 찜했습니다."
+        "400":
+          description: "잘못된 요청 (필수값 없음)"
+        "404":
+          description: "상품이 존재하지 않음"
+        "409":
+          description: "이미 찜한 상품"
+        "500":
+          description: "서버 오류"
+
+  /item/favorites/{itemId}:
+    delete:
+      summary: "상품 찜 취소"
+      description: "사용자가 특정 상품을 찜 목록에서 제거합니다."
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          description: "찜을 취소할 상품의 ID"
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "찜 취소 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "찜한 상품이 취소되었습니다."
+        "400":
+          description: "잘못된 요청 (필수값 없음)"
+        "404":
+          description: "찜한 상품이 존재하지 않음"
+        "500":
+          description: "서버 오류"
+
 components:
   schemas:
     Item:
@@ -141,7 +224,7 @@ components:
         category:
           type: object
           properties:
-            name:
+            category:
               type: string
               example: "전자제품"
         region:
