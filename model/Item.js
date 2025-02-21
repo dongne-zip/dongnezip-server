@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       categoryId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         field: "category_id",
       },
       regionId: {
@@ -37,11 +37,6 @@ module.exports = (sequelize, DataTypes) => {
       price: {
         type: DataTypes.INTEGER,
         allowNull: false,
-      },
-      status: {
-        type: DataTypes.ENUM("거래가능", "거래완료"),
-        allowNull: false,
-        defaultValue: "거래가능",
       },
       detail: {
         type: DataTypes.TEXT,

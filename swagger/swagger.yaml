@@ -1,11 +1,70 @@
 openapi: 3.0.0
 info:
-  title: 상품 등록 API
-  description: "이미지와 함께 상품 정보를 등록하는 API"
+  title: Item API
+  description: "상품 등록 및 조회 API (이미지 포함)"
   version: 1.0.0
 
+servers:
+  - url: http://localhost:8080/api-server
+    description: 로컬 개발 서버
+
 paths:
-  /api-server/item/addItem:
+  /item/item:
+    get:
+      summary: "전체 상품 조회"
+      description: >
+        카테고리(`categoryId`), 지역(`regionId`), 거래 상태(`status`)를 기준으로 상품을 필터링하여 조회합니다.
+        각 상품에는 대표 이미지가 포함됩니다.  
+        **sortBy** 파라미터를 통해 최신순(`latest`) 또는 인기순(`popular`)으로 정렬할 수 있습니다.
+      parameters:
+        - name: categoryId
+          in: query
+          description: "필터링할 카테고리 ID (0이면 전체 조회)"
+          required: false
+          schema:
+            type: integer
+        - name: regionId
+          in: query
+          description: "필터링할 지역 ID (0이면 전체 조회)"
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: "거래 상태 필터 (available = 거래 가능, completed = 거래 완료)"
+          required: false
+          schema:
+            type: string
+            enum: [available, completed]
+        - name: sortBy
+          in: query
+          description: "정렬 기준 (latest=최신순, popular=인기순)"
+          required: false
+          schema:
+            type: string
+            enum: [latest, popular]
+            default: "latest"
+      responses:
+        "200":
+          description: "성공적으로 상품 목록을 조회함"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Item"
+        "400":
+          description: "잘못된 요청 (쿼리 파라미터 오류 등)"
+        "500":
+          description: "서버 오류"
+
+  /item/addItem:
     post:
       summary: "상품 등록"
       description: "이미지와 함께 상품 정보를 등록합니다."
@@ -24,37 +83,66 @@ paths:
                   description: "업로드할 이미지 파일 (다중 업로드 가능)"
                 categoryId:
                   type: integer
-                  example: 1
-                  description: "카테고리 ID"
                 title:
                   type: string
                   example: "맥북 프로 16인치 팝니다"
-                  description: "상품 제목"
                 price:
                   type: integer
-                  example: 30000
-                  description: "상품 가격"
                 detail:
                   type: string
-                  example: "거의 새상품입니다. 실사용 1개월"
-                  description: "상품 상세 설명"
                 itemStatus:
                   type: string
-                  example: "최상"
-                  description: "상품 상태"
                 latitude:
                   type: number
                   format: float
-                  example: 37.5665
-                  description: "위도 정보"
                 longitude:
                   type: number
                   format: float
-                  example: 126.9780
-                  description: "경도 정보"
       responses:
         "201":
           description: "상품 등록 성공"
+        "400":
+          description: "잘못된 요청"
+        "500":
+          description: "서버 오류"
+
+  /item/search:
+    get:
+      summary: "상품 검색"
+      description: "제목 또는 상세 설명을 기반으로 상품을 검색합니다."
+      parameters:
+        - name: keyword
+          in: query
+          description: "검색할 키워드 (상품 제목 또는 설명에서 검색됨)"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "검색 결과 반환"
+        "400":
+          description: "잘못된 요청"
+        "500":
+          description: "서버 오류"
+
+  /item/favorites:
+    post:
+      summary: "상품 찜하기"
+      description: "사용자가 특정 상품을 찜 목록에 추가합니다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemId:
+                  type: integer
+                  example: 1
+                  description: "찜할 상품의 ID"
+      responses:
+        "201":
+          description: "찜하기 성공"
           content:
             application/json:
               schema:
@@ -65,8 +153,93 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "상품이 성공적으로 등록되었습니다."
+                    example: "상품을 찜했습니다."
         "400":
-          description: "잘못된 요청"
+          description: "잘못된 요청 (필수값 없음)"
+        "404":
+          description: "상품이 존재하지 않음"
+        "409":
+          description: "이미 찜한 상품"
         "500":
           description: "서버 오류"
+
+
+  /item/favorites/{itemId}:
+    delete:
+      summary: "상품 찜 취소"
+      description: "사용자가 특정 상품을 찜 목록에서 제거합니다."
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          description: "찜을 취소할 상품의 ID"
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "찜 취소 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "찜한 상품이 취소되었습니다."
+        "400":
+          description: "잘못된 요청 (필수값 없음)"
+        "404":
+          description: "찜한 상품이 존재하지 않음"
+
+        "500":
+          description: "서버 오류"
+
+components:
+  schemas:
+
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+
+        userId:
+          type: integer
+          example: 101
+        title:
+          type: string
+          example: "새로운 상품"
+        price:
+          type: integer
+          example: 50000
+        status:
+          type: string
+          example: "available"
+        detail:
+          type: string
+          example: "상품 상세 설명"
+        itemStatus:
+          type: string
+          example: "new"
+        category:
+          type: object
+          properties:
+            category:
+              type: string
+              example: "전자제품"
+        region:
+          type: object
+          properties:
+            province:
+              type: string
+              example: "서울특별시"
+            district:
+              type: string
+              example: "강남구"
+        imageUrl:
+          type: string
+          example: "https://example.com/image.jpg"
