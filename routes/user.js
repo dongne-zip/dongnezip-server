@@ -5,6 +5,7 @@ const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 const router = express.Router();
 
+<<<<<<< HEAD
 // 인증 번호 이메일 전송
 router.post("/sendCode", UserController.sendCode);
 
@@ -12,28 +13,32 @@ router.post("/sendCode", UserController.sendCode);
 router.post("/verifyCode", UserController.verifyCode);
 
 // 회원가입 (로컬)
+=======
+// 회원가입
+>>>>>>> parent of 06be73c (feat/add user api)
 router.post("/join", UserController.join);
 
 // 비밀번호 찾기
 router.post("/findPw", UserController.findPw);
 
 // 아이디 중복 검사
-router.post("/checkId", UserController.checkId);
+router.get("/checkId", UserController.checkId);
+
+// 카카오 로그인
+router.get("/kakao", passport.authenticate("kakao"));
+router.get(
+  "/kakao/callback",
+  passport.authenticate("kakao", {
+    failureRedirect: "/?error=카카오로그인 실패",
+  }),
+  UserController.kakaoLogin
+);
+
+// 구글 로그인
+router.post("/login/google", UserController.googleLogin);
 
 // 로컬 로그인
-router.post("/login/local", (req, res, next) => {
-  passport.authenticate("local", { session: false }, (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.status(401).json({ message: info.message || "로그인 실패" });
-    }
-
-    req.user = user;
-    UserController.localLogin(req, res, next);
-  })(req, res, next);
-});
+router.post("/login/local", UserController.localLogin);
 
 // 로그아웃
 router.post("/logout", authenticateToken, UserController.logout);
@@ -52,7 +57,7 @@ router.patch("/changeInfo", authenticateToken, UserController.changeInfo);
 router.delete("/deleteUser", authenticateToken, UserController.deleteUser);
 
 // 닉네임 중복 검사
-router.post("/checkNick", authenticateToken, UserController.checkNick);
+router.get("/checkNickname", authenticateToken, UserController.checkNickname);
 
 /* 마이페이지 */
 
