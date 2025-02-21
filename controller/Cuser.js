@@ -1,5 +1,12 @@
 const { where } = require("sequelize");
-const { User, sequelize } = require("../model");
+const {
+  User,
+  sequelize,
+  Item,
+  Favorite,
+  Transaction,
+  ItemImage,
+} = require("../model");
 
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -45,6 +52,7 @@ exports.sendCode = async (req, res, next) => {
     await transporter.sendMail(mailOptions);
 
     return res.json({
+      result: true,
       message: "이메일로 인증번호를 발송했습니다. 인증번호를 입력해주세요.",
       token,
     });
@@ -65,7 +73,7 @@ exports.verifyCode = (req, res, next) => {
 
     // 인증번호 비교
     if (decoded.code === code) {
-      return res.json({ message: "인증되었습니다!" });
+      return res.json({ result: true, message: "인증 성공!" });
     } else {
       return res.json({
         message: "인증번호가 일치하지 않습니다. 다시 시도해주세요.",
@@ -100,14 +108,17 @@ exports.join = async (req, res, next) => {
       password: hash,
     });
 
-    return res.json({ message: "회원가입 성공" });
+    return res.json({ result: true, message: "회원가입 성공" });
   } catch (error) {
     console.error(error);
     return next(error);
   }
 };
 
-// 이메일 중복 검사
+// 비밀번호 찾기
+exports.findPw = async (req, res, next) => {};
+
+// 아이디 중복 검사
 exports.checkId = async (req, res) => {
   const { email } = req.body;
 
@@ -118,7 +129,7 @@ exports.checkId = async (req, res) => {
       return res.json({ message: "이미 존재하는 아이디입니다." });
     }
 
-    return res.json({ message: "사용 가능한 아이디입니다." });
+    return res.json({ result: true, message: "사용 가능한 아이디입니다." });
   } catch (error) {
     console.error(error);
     return res.json({ message: "서버 오류가 발생했습니다." });
@@ -129,8 +140,6 @@ exports.checkId = async (req, res) => {
 exports.localLogin = async (req, res, next) => {
   try {
     const user = req.user;
-    console.log(user.email);
-    console.log(user.paasword);
 
     if (!user.email) {
       return res.json({ message: "가입되지 않은 이메일입니다." });
@@ -157,23 +166,38 @@ exports.localLogin = async (req, res, next) => {
     // 쿠키에 JWT 저장
     res.cookie("authToken", token, cookieOptions);
 
-    return res.json({ message: "로그인 성공", token });
+    return res.json({ result: true, message: "로그인 성공", token });
   } catch (error) {
     console.error(error);
     return next(error);
   }
 };
 
+// 카카오 로그인
+exports.kakaoLogin = async (req, res, next) => {};
+
+// 구글 로그인
+exports.googleLogin = async (req, res) => {};
+
 // 로그아웃
 exports.logout = (req, res, next) => {
   try {
     // 로컬 로그인: 쿠키에서 JWT 토큰 삭제
-    res.clearCookie("authToken");
+    res.cookie("authToken", "", {
+      httpOnly: true,
+      secure: false,
+      maxAge: 0, // 만료 시간 0으로 설정
+    });
+
+    return res.status(200).json({
+      result: true,
+      message: "로그아웃되었습니다.",
+    });
 
     // 카카오/구글 로그인: passport 세션 종료
     req.logout((err) => {
       if (err) return next(err);
-      return res.json({ message: "로그아웃 성공" });
+      return res.json({ result: true, message: "로그아웃 성공" });
     });
   } catch (error) {
     console.error(error);
@@ -181,21 +205,50 @@ exports.logout = (req, res, next) => {
   }
 };
 
-// 비밀번호 재설정
-exports.changePw = async (req, res, next) => {
-  const { oldPwd, newPwd } = req.body;
+// 프로필 이미지 변경
+exports.changeImg = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "이미지를 업로드해주세요." });
+    }
+
+    const imageUrl = req.file.location;
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    user.profileImg = imageUrl;
+    await user.save();
+
+    return res.status(200).json({
+      result: true,
+      message: "프로필 이미지가 성공적으로 업데이트 되었습니다.",
+      profileImg: imageUrl,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+// 회원 정보 수정
+exports.changeInfo = async (req, res, next) => {
+  const { nickname, oldPwd, newPwd } = req.body;
 
   try {
     const getUser = req.user || null;
+
     if (!getUser) {
       return res.status(400).json({ message: "로그인 정보가 없습니다." });
     }
 
     const user = await User.findOne({ where: { id: getUser.id } });
-
     if (!user) {
-      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+      return res.json({ message: "사용자를 찾을 수 없습니다." });
     }
+
     const isMatch = await bcrypt.compare(oldPwd, user.password);
     if (!isMatch) {
       return res.json({ message: "현재 비밀번호가 일치하지 않습니다." });
@@ -203,9 +256,11 @@ exports.changePw = async (req, res, next) => {
     const salt = await bcrypt.genSalt(SALT);
     const hash = await bcrypt.hash(newPwd, salt);
     user.password = hash;
-    await user.save();
 
-    return res.json({ message: "비밀번호 변경 성공" });
+    user.nickname = nickname || user.nickname;
+
+    await user.save();
+    return res.json({ result: true, message: "회원 정보 수정 성공", user });
   } catch (error) {
     console.error(error);
     return next(error);
@@ -228,38 +283,10 @@ exports.deleteUser = async (req, res) => {
 
     // 사용자 삭제
     await user.destroy();
-    return res.json({ message: "회원 탈퇴 성공" });
+    return res.json({ result: true, message: "회원 탈퇴 성공" });
   } catch (err) {
     console.error(err);
     return res.json({ message: "서버 오류가 발생했습니다." });
-  }
-};
-
-// 회원 정보 수정
-exports.changeInfo = async (req, res, next) => {
-  const { profileImg, nickname } = req.body;
-
-  try {
-    const getUser = req.user || null;
-
-    if (!getUser) {
-      return res.status(400).json({ message: "로그인 정보가 없습니다." });
-    }
-
-    const user = await User.findOne({ where: { id: getUser.id } });
-    if (!user) {
-      return res.json({ message: "사용자를 찾을 수 없습니다." });
-    }
-
-    // 사용자 정보 수정
-    user.profileImg = profileImg || user.profileImg;
-    user.nickname = nickname || user.nickname;
-
-    await user.save();
-    return res.json({ message: "회원 정보 수정 성공", user });
-  } catch (error) {
-    console.error(error);
-    return next(error);
   }
 };
 
@@ -274,9 +301,273 @@ exports.checkNick = async (req, res) => {
       return res.json({ message: "이미 존재하는 닉네임입니다." });
     }
 
-    return res.json({ message: "사용 가능한 닉네임입니다." });
+    return res.json({ result: true, message: "사용 가능한 닉네임입니다." });
   } catch (error) {
     console.error(error);
     return res.json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/* 마이페이지 */
+
+// 마이페이지 메인
+exports.mypage = async (req, res) => {
+  try {
+    const getUser = req.user || null;
+    if (!getUser) {
+      return res.status(400).json({ message: "로그인 정보가 없습니다." });
+    }
+
+    const user = await User.findOne({ where: { id: getUser.id } });
+
+    if (!user) {
+      return res.json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    // 판매 물품 조회
+    const soldItems = await Transaction.findAll({
+      where: { sellerId: getUser },
+      include: [
+        {
+          model: Item,
+          where: { userId: getUser },
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              attributes: ["id", "imageUrl"],
+            },
+          ],
+        },
+      ],
+    });
+
+    // 구매 물품 조회
+    const boughtItems = await Transaction.findAll({
+      where: { buyerId: getUser },
+      include: [
+        {
+          model: Item,
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              attributes: ["id", "imageUrl"],
+            },
+          ],
+        },
+      ],
+    });
+
+    // 찜한 물품 조회
+    const favoriteItems = await Favorite.findAll({
+      where: { userId: getUser },
+      include: [
+        {
+          model: Item,
+          attributes: ["id", "title", "price", "status", "itemStatus"],
+          include: [
+            {
+              model: ItemImage,
+              attributes: ["id", "imageUrl"],
+            },
+          ],
+        },
+      ],
+    });
+    return res.status(200).json({
+      result: true,
+      message: "마이페이지 정보 조회 성공",
+      soldItems,
+      boughtItems,
+      favoriteItems,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+// 판매 내역
+exports.soldItems = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  try {
+    const getUser = req.user || null;
+    if (!getUser) {
+      return res.status(400).json({ message: "로그인 정보가 없습니다." });
+    }
+
+    const user = await User.findOne({ where: { id: getUser.id } });
+
+    if (!user) {
+      return res.json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    const { rows, count } = await Transaction.findAndCountAll({
+      where: {
+        sellerId: getUser,
+      },
+      include: [
+        {
+          model: Item,
+          as: "item",
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              as: "images",
+              required: false,
+              attributes: ["imageUrl"],
+            },
+          ],
+        },
+      ],
+      limit: limit,
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return res.json({
+      items: rows.map((item) => {
+        return {
+          id: item.item.id,
+          title: item.item.title,
+          price: item.item.price,
+          images: item.item.images.map((image) => image.imageUrl),
+        };
+      }),
+      currentPage: page,
+      totalPages: totalPages,
+      totalItems: count,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+// 구매 내역
+exports.boughtItems = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  try {
+    const getUser = req.user || null;
+    if (!getUser) {
+      return res.status(400).json({ message: "로그인 정보가 없습니다." });
+    }
+
+    const user = await User.findOne({ where: { id: getUser.id } });
+
+    if (!user) {
+      return res.json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    const { rows, count } = await Transaction.findAndCountAll({
+      where: {
+        buyerId: getUser,
+      },
+      include: [
+        {
+          model: Item,
+          as: "item",
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              as: "images",
+              required: false,
+              attributes: ["imageUrl"],
+            },
+          ],
+        },
+      ],
+      limit: limit,
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return res.json({
+      items: rows.map((item) => {
+        return {
+          id: item.item.id,
+          title: item.item.title,
+          price: item.item.price,
+          images: item.item.images.map((image) => image.imageUrl),
+        };
+      }),
+      currentPage: page,
+      totalPages: totalPages,
+      totalItems: count,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+// 찜 내역
+exports.LikeItems = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+  try {
+    const getUser = req.user || null;
+    if (!getUser) {
+      return res.status(400).json({ message: "로그인 정보가 없습니다." });
+    }
+
+    const user = await User.findOne({ where: { id: getUser.id } });
+
+    if (!user) {
+      return res.json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    const { rows, count } = await Favorite.findAndCountAll({
+      where: {
+        userId: getUser,
+      },
+      include: [
+        {
+          model: Item,
+          as: "item",
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              as: "images",
+              required: false,
+              attributes: ["imageUrl"],
+            },
+          ],
+        },
+      ],
+      limit: limit,
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+    return res.json({
+      items: rows.map((favorite) => {
+        return {
+          id: favorite.item.id,
+          title: favorite.item.title,
+          price: favorite.item.price,
+          images: favorite.item.images.map((image) => image.imageUrl),
+        };
+      }),
+      currentPage: page,
+      totalPages: totalPages,
+      totalItems: count,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 };
