@@ -11,7 +11,7 @@ require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
 const app = express();
-const socketHandler = require("./socket/index");
+const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
 
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
