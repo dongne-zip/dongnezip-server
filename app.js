@@ -17,7 +17,12 @@ const server = http.createServer(app);
 const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
 socketHandler(server);
 
-app.use(cors());
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
