@@ -1,33 +1,42 @@
 const passport = require("passport");
 const KakaoStrategy = require("passport-kakao").Strategy;
 
-const User = require("../model/User");
+const { User } = require("../model");
 
 module.exports = () => {
   passport.use(
     new KakaoStrategy(
       {
         clientID: process.env.KAKAO_ID,
-        callbackURL: "/user/kakao/callback",
+        callbackURL: process.env.KAKAO_CALLBACK_URL,
       },
-      async (accessToken, refreshToken, user, done) => {
+      async (accessToken, refreshToken, profile, done) => {
+        console.log("Kakao profile:", profile);
         try {
-          const exUser = await User.findOne({
-            where: { snsId: user.id, provider: "kakao" },
+          let exUser = await User.findOne({
+            where: {
+              email: profile._json.kakao_account.email,
+              provider: "kakao",
+            },
           });
+
           if (exUser) {
-            done(null, exUser);
+            return done(null, exUser);
           } else {
-            const newUser = await User.create({
-              nickname: user.properties.nickname,
-              snsId: user.id,
+            exUser = new User({
+              email: profile._json.kakao_account.email,
+              nickname: profile.displayName,
               provider: "kakao",
             });
-            done(null, newUser);
+
+            await exUser.save();
+
+            console.log("카카오 회원 회원가입 성공", exUser);
+            return done(null, exUser);
           }
         } catch (error) {
-          console.error(error);
-          done(error);
+          console.log("카카오 로그인 또는 회원가입 못하고 에러", error);
+          return done(error);
         }
       }
     )

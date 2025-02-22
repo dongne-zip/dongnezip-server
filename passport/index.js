@@ -6,6 +6,6 @@ const User = require("../model/User");
 
 module.exports = () => {
   local();
-  // kakao();
-  // google();
+  kakao();
+  google();
 };
