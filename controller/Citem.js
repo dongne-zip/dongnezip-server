@@ -180,10 +180,10 @@ exports.createItem = async (req, res) => {
 exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId, status, sortBy } = req.query;
-    const userId = 1;
-    //const userId = req.user?.id || null; //  현재 로그인한 사용자의 ID
+    //const userId = req.user?.id || null; // ✅ 로그인하지 않은 경우 null
+    const userId = null;
 
-    // 1) 필터 설정
+    // 필터 설정
     const filter = {};
     if (categoryId && parseInt(categoryId, 10) > 0) {
       filter.categoryId = parseInt(categoryId, 10);
@@ -192,7 +192,7 @@ exports.getAllItems = async (req, res) => {
       filter.regionId = parseInt(regionId, 10);
     }
 
-    // 2) attributes: 거래 상태 + 인기순 계산 + 찜 여부 추가
+    // attributes: 거래 상태 + 인기순 계산 + 찜 여부 추가
     const attributes = [
       "id",
       "userId",
@@ -202,13 +202,13 @@ exports.getAllItems = async (req, res) => {
       "itemStatus",
       [Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")), "buyerId"],
       [Sequelize.fn("COUNT", Sequelize.col("Favorites.id")), "favCount"],
-      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"], // 대표 이미지 가져오기
+      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"],
     ];
 
-    // 3) group 설정
-    const group = ["Item.id", "Region.id", "Category.id"];
+    // group 설정
+    const group = ["Item.id", "Region.id", "Category.id", "Favorites.id"]; // ✅ Favorites.id 추가
 
-    // 4) 거래 상태 필터 (HAVING)
+    // 거래 상태 필터 (HAVING)
     let havingCondition = {};
     if (status === "available") {
       havingCondition.buyerId = { [Op.eq]: null };
@@ -216,15 +216,25 @@ exports.getAllItems = async (req, res) => {
       havingCondition.buyerId = { [Op.not]: null };
     }
 
-    // 5) 정렬 로직
+    // 정렬 로직
     let order = [];
     if (sortBy === "popular") {
       order = [[Sequelize.literal("favCount"), "DESC"]];
     } else {
-      order = [["createdAt", "DESC"]]; // 기본값 (최신순)
+      order = [["createdAt", "DESC"]];
     }
 
-    // 6) findAll 쿼리 실행
+    // `Favorite` 모델에서 userId 조건을 동적으로 설정
+    const favoriteInclude = {
+      model: Favorite,
+      attributes: ["userId"],
+      required: false,
+    };
+    if (userId) {
+      favoriteInclude.where = { userId }; // ✅ 로그인한 경우에만 userId 필터 적용
+    }
+
+    // findAll 쿼리 실행
     const items = await Item.findAll({
       where: filter,
       attributes,
@@ -234,12 +244,7 @@ exports.getAllItems = async (req, res) => {
           attributes: [],
           required: false,
         },
-        {
-          model: Favorite, // 사용자의 찜 여부 확인
-          attributes: ["userId"],
-          required: false,
-          where: userId ? { userId } : undefined, // 현재 사용자의 찜한 상품만 조회
-        },
+        favoriteInclude, // ✅ userId가 null일 경우 찜 여부 조회 X
         {
           model: Region,
           attributes: ["id", "district"],
@@ -262,10 +267,10 @@ exports.getAllItems = async (req, res) => {
       order,
     });
 
-    // 7) 프론트엔드에 전달할 데이터 변환 (찜 여부 추가)
+    // 프론트엔드에 전달할 데이터 변환 (찜 여부 추가)
     const responseData = items.map((item) => ({
-      ...item.get({ plain: true }), // Sequelize 객체를 JSON으로 변환
-      isFavorite: item.Favorites && item.Favorites.length > 0,
+      ...item.get({ plain: true }),
+      isFavorite: userId ? item.Favorites && item.Favorites.length > 0 : false, // ✅ 로그인하지 않은 경우 찜 여부 false
     }));
 
     return res.status(200).json({ success: true, data: responseData });
@@ -356,44 +361,69 @@ exports.getItemDetail = async (req, res) => {
 exports.searchItems = async (req, res) => {
   try {
     let { keyword } = req.query;
+    const userId = req.user?.id || null; //로그인 여부 체크
 
-    // 검색어가 없으면 메시지 반환
     if (!keyword) {
       return res
         .status(200)
         .json({ success: true, message: "상품이 없습니다." });
     }
 
+    //상품 목록 조회
     const items = await Item.findAll({
       where: {
         [Op.or]: [
-          { title: { [Op.like]: `%${keyword}%` } }, // 제목 검색
-          { detail: { [Op.like]: `%${keyword}%` } }, // 상세 설명 검색
+          { title: { [Op.like]: `%${keyword}%` } }, //제목 검색
+          { detail: { [Op.like]: `%${keyword}%` } }, //상세 설명 검색
         ],
       },
       include: [
-        { model: Category, attributes: ["category"] }, // 카테고리 조인
-        { model: Region, attributes: ["district"] }, // 지역 조인
+        { model: Category, attributes: ["id", "category"] }, //카테고리 정보 추가
+        { model: Region, attributes: ["id", "district"] }, //지역 정보 추가
         {
           model: ItemImage,
-          attributes: ["imageUrl"],
-          limit: 1, // 첫 번째 이미지 하나만 가져오기
-          order: [["id", "ASC"]], // id 기준 오름차순 정렬
-          separate: true, // 별도의 쿼리 실행 (N+1 문제 방지)
-          required: false, // 이미지가 없어도 Item이 조회되도록 설정
+          as: "ItemImages",
+          attributes: [], //`GROUP_CONCAT` 사용하므로 개별 `id` 불필요
+          required: false,
+        },
+        {
+          model: Favorite,
+          attributes: [], //`id`를 포함하지 않음 (집계 문제 해결)
+          required: false,
+          where: userId ? { userId } : undefined, //로그인한 사용자만 찜 정보 조회
         },
       ],
-      attributes: ["id", "userId", "title", "price", "itemStatus", "detail"],
+      attributes: [
+        "id",
+        "userId",
+        "title",
+        "price",
+        "itemStatus",
+        "detail",
+        "categoryId",
+        "regionId",
+        "createdAt",
+        [
+          Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
+          "imageUrls",
+        ], //여러 이미지 가져오기
+        [Sequelize.fn("COUNT", Sequelize.col("Favorites.user_id")), "favCount"], //찜 개수 계산
+        [
+          Sequelize.fn("ANY_VALUE", Sequelize.col("Favorites.user_id")),
+          "favoriteUser",
+        ], //찜 여부 확인
+      ],
+      group: ["Item.id", "Category.id", "Region.id"], //`ItemImages.id`, `Favorites.id` 제거하여 오류 해결
     });
 
-    // 검색 결과가 없을 경우 메시지 반환
-    if (items.length === 0) {
-      return res
-        .status(200)
-        .json({ success: true, message: "상품이 없습니다." });
-    }
+    // 데이터 변환
+    const responseData = items.map((item) => ({
+      ...item.get({ plain: true }),
+      isFavorite: userId ? item.favoriteUser !== null : false, //로그인한 경우 찜 여부 확인, 비로그인 사용자는 false
+      images: item.imageUrls ? item.imageUrls.split(",") : [], //여러 이미지 배열 변환
+    }));
 
-    return res.status(200).json({ success: true, data: items });
+    return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     console.error("Error searching items:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });
