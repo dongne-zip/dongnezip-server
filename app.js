@@ -6,8 +6,8 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
-require("./passport/kakaoStrategy")();
-require("./passport/googleStrategy")();
+// require("./passport/kakaoStrategy")();
+// require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
 const app = express();
@@ -19,7 +19,7 @@ const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불�
 socketHandler(server);
 
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: "http://localhost:3001",
   credentials: true,
 };
 
@@ -45,9 +45,8 @@ app.use(`${prefix}/chat`, chatRouter);
 app.use(`${prefix}/item`, itemRouter);
 app.use(`${prefix}/user`, userRouter);
 
-
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);

@@ -54,7 +54,7 @@ async function getAddressFromCoordinatesKakao(latitude, longitude) {
 // 판매 글 등록 + 이미지 업로드
 // POST /api-server/item/addItem
 exports.createItem = async (req, res) => {
-  const transaction = await Item.sequelize.transaction(); // 트랜잭션 시작
+  const transaction = await Item.sequelize.transaction();
   try {
     const {
       categoryId,
@@ -65,17 +65,7 @@ exports.createItem = async (req, res) => {
       latitude,
       longitude,
     } = req.body;
-    const userId = 2;
-
-    console.log(
-      categoryId,
-      title,
-      price,
-      detail,
-      itemStatus,
-      latitude,
-      longitude
-    );
+    const userId = 2; // 현재 로그인된 사용자 (판매자)
 
     if (
       !categoryId ||
@@ -142,6 +132,18 @@ exports.createItem = async (req, res) => {
         status: "거래가능",
         detail,
         itemStatus: itemStatus || "중",
+      },
+      { transaction }
+    );
+
+    // 거래내역에도 추가
+    await Transaction.create(
+      {
+        itemId: newItem.id,
+        sellerId: userId, // 판매자 ID 저장
+        buyerId: null, // 구매자는 아직 없으므로 NULL
+        status: "available", // 거래 가능 상태로 초기화
+        createAt: new Date(), // 거래 생성 시간
       },
       { transaction }
     );
@@ -479,5 +481,33 @@ exports.removeFromFavorites = async (req, res) => {
   } catch (error) {
     console.error("Error removing favorite:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
+/** 판매 글 삭제 */
+// DELETE /api-server/item/:itemId
+exports.deleteItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    //const userId = req.user.id; // JWT 미들웨어를 통해 설정된 사용자 ID
+    const userId = 1;
+
+    // 1. 아이템 조회
+    const item = await Item.findOne({ where: { id: itemId } });
+    if (!item) {
+      return res.status(404).json({ error: "해당 상품을 찾을 수 없습니다." });
+    }
+
+    // 2. 권한 확인: 요청한 사용자가 해당 상품의 등록자인지 확인
+    if (item.userId !== userId) {
+      return res.status(403).json({ error: "삭제 권한이 없습니다." });
+    }
+
+    // 3. 아이템 삭제
+    await item.destroy();
+    return res.json({ message: "상품이 성공적으로 삭제되었습니다." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "서버 오류가 발생했습니다." });
   }
 };
