@@ -27,7 +27,6 @@ db.Map = require("./Map")(sequelize, Sequelize);
 db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
-
 /** 테이블 관계 설정 **/
 
 // 1) User → Item (1:N) - 사용자가 탈퇴하면 등록한 상품 삭제
@@ -45,24 +44,20 @@ db.Item.belongsTo(db.User, {
 db.User.hasMany(db.Transaction, {
   foreignKey: "seller_id",
   sourceKey: "id",
-  as: "SellingTransactions",
 });
 db.Transaction.belongsTo(db.User, {
   foreignKey: "seller_id",
   targetKey: "id",
-  as: "Seller",
 });
 
 // 3) User → Transaction (구매자 관계)
 db.User.hasMany(db.Transaction, {
   foreignKey: "buyer_id",
   sourceKey: "id",
-  as: "BuyingTransactions",
 });
 db.Transaction.belongsTo(db.User, {
   foreignKey: "buyer_id",
   targetKey: "id",
-  as: "Buyer",
 });
 
 // 4) Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제
@@ -175,6 +170,5 @@ db.Item.belongsTo(db.Region, {
   foreignKey: "regionId",
   onDelete: "CASCADE",
 });
-
 
 module.exports = db;
