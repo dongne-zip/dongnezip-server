@@ -22,6 +22,11 @@ module.exports = (Sequelize, DataTypes) => {
         type: DataTypes.STRING(255),
         field: "road_address",
       },
+      placeName: {
+        type: DataTypes.STRING(255),
+        allowNull: true, // 사용자가 입력하지 않을 수도 있으므로 허용
+        field: "place_name",
+      },
     },
     {
       tableName: "map",

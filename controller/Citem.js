@@ -64,6 +64,7 @@ exports.createItem = async (req, res) => {
       itemStatus,
       latitude,
       longitude,
+      placeName,
     } = req.body;
     const userId = 2; // 현재 로그인된 사용자 (판매자)
 
@@ -115,6 +116,7 @@ exports.createItem = async (req, res) => {
           longitude,
           address,
           road_address: roadAddress,
+          placeName,
         },
         { transaction }
       );
@@ -124,7 +126,7 @@ exports.createItem = async (req, res) => {
     const newItem = await Item.create(
       {
         userId,
-        categoryId,
+        categoryId: parseInt(categoryId, 10),
         regionId: regionData.id, // 지역 정보 저장
         mapId: mapData.id, // 위치 정보 저장
         title,
@@ -175,15 +177,154 @@ exports.createItem = async (req, res) => {
   }
 };
 
+//**판매 글 수정 */
+// PATCH /api-server/item/:itemId
+exports.updateItem = async (req, res) => {
+  const transaction = await Item.sequelize.transaction();
+  try {
+    const { itemId } = req.params;
+    const {
+      categoryId,
+      title,
+      price,
+      detail,
+      itemStatus,
+      latitude,
+      longitude,
+      placeName, // map 테이블 컬럼
+    } = req.body;
+
+    // 테스트를 위한 임시 userId, 실제 환경에서는 req.user.id 사용
+    const userId = 2;
+
+    // 수정할 상품 조회 (transaction 옵션을 첫번째 객체에 포함)
+    const item = await Item.findOne({ where: { id: itemId }, transaction });
+    if (!item) {
+      await transaction.rollback();
+      return res
+        .status(404)
+        .json({ success: false, message: "수정할 상품을 찾을 수 없습니다." });
+    }
+
+    // 상품 작성자와 현재 사용자가 일치하는지 검증
+    if (item.userId !== userId) {
+      await transaction.rollback();
+      return res
+        .status(403)
+        .json({ success: false, message: "수정 권한이 없습니다." });
+    }
+
+    let regionData, mapData;
+    // 좌표 정보가 제공되면 위치 정보 업데이트 진행 (placeName도 함께 업데이트)
+    if (latitude && longitude) {
+      const { province, district, address, roadAddress } =
+        await getAddressFromCoordinatesKakao(latitude, longitude);
+
+      if (!province || !district) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "위치 정보를 가져올 수 없습니다.",
+        });
+      }
+
+      // 기존 지역 정보 조회 또는 생성
+      regionData = await Region.findOne({
+        where: { province, district },
+        transaction,
+      });
+      if (!regionData) {
+        regionData = await Region.create(
+          { province, district },
+          { transaction }
+        );
+      }
+
+      // 지도 정보 조회 또는 생성
+      mapData = await Map.findOne({
+        where: { latitude, longitude },
+        transaction,
+      });
+      if (!mapData) {
+        // 신규 생성 시 placeName도 포함
+        mapData = await Map.create(
+          {
+            latitude,
+            longitude,
+            address,
+            road_address: roadAddress,
+            placeName: placeName || null,
+          },
+          { transaction }
+        );
+      } else {
+        // 기존 map 데이터가 존재하면, placeName이 제공된 경우 업데이트
+        if (placeName) {
+          await mapData.update({ placeName }, { transaction });
+        }
+      }
+    } else if (placeName) {
+      // 좌표 정보는 변경되지 않았지만, placeName만 업데이트하는 경우
+      if (item.mapId) {
+        mapData = await Map.findOne({ where: { id: item.mapId }, transaction });
+        if (mapData) {
+          await mapData.update({ placeName }, { transaction });
+        }
+      }
+    }
+
+    // 업데이트할 필드 구성 (상품 테이블에는 placeName 컬럼이 없으므로 제외)
+    const updateFields = {};
+    if (categoryId) updateFields.categoryId = categoryId;
+    if (title) updateFields.title = title;
+    if (price) updateFields.price = price;
+    if (detail !== undefined) updateFields.detail = detail;
+    if (itemStatus) updateFields.itemStatus = itemStatus;
+
+    // 좌표가 변경되었으면 region, map 정보 업데이트 (mapData가 존재할 경우)
+    if (regionData) updateFields.regionId = regionData.id;
+    if (mapData) updateFields.mapId = mapData.id;
+
+    // 상품 정보 업데이트
+    await item.update(updateFields, { transaction });
+
+    // 이미지 업데이트 처리
+    if (req.files && req.files.length > 0) {
+      // 기존 이미지 삭제 (필요에 따라 기존 이미지를 유지하는 로직도 고려)
+      await ItemImage.destroy({ where: { itemId: item.id }, transaction });
+
+      // 새로운 이미지 기록 생성
+      const imageRecords = req.files.map((file) => ({
+        itemId: item.id,
+        imageUrl: file.location, // AWS S3 URL 등
+      }));
+      await ItemImage.bulkCreate(imageRecords, { transaction });
+    }
+
+    // 모든 작업이 성공하면 커밋
+    await transaction.commit();
+    return res.status(200).json({
+      success: true,
+      message: "상품이 성공적으로 수정되었습니다.",
+      data: item,
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error("상품 수정 에러:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "상품 수정에 실패했습니다.", error });
+  }
+};
+
 /** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가 + 사용자 찜 여부 포함) */
 // GET /api-server/item
 exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId, status, sortBy } = req.query;
-    //const userId = req.user?.id || null; // ✅ 로그인하지 않은 경우 null
-    const userId = null;
+    // 실제 환경에서는 req.user?.id로 받아오고, 여기서는 예시로 3 사용
+    const userId = req.user?.id || 3;
 
-    // 필터 설정
     const filter = {};
     if (categoryId && parseInt(categoryId, 10) > 0) {
       filter.categoryId = parseInt(categoryId, 10);
@@ -192,7 +333,28 @@ exports.getAllItems = async (req, res) => {
       filter.regionId = parseInt(regionId, 10);
     }
 
-    // attributes: 거래 상태 + 인기순 계산 + 찜 여부 추가
+    let havingCondition = {};
+    if (status === "available") {
+      havingCondition.buyerId = { [Op.eq]: null };
+    } else if (status === "completed") {
+      havingCondition.buyerId = { [Op.not]: null };
+    }
+
+    let order = [];
+    if (sortBy === "popular") {
+      order = [[Sequelize.literal("favCount"), "DESC"]];
+    } else {
+      order = [["createdAt", "DESC"]];
+    }
+
+    // 전체 찜 개수를 위한 include (기본 alias "Favorites" 사용)
+    const favoriteInclude = {
+      model: Favorite,
+      as: "Favorites",
+      attributes: ["userId"],
+      required: false,
+    };
+
     const attributes = [
       "id",
       "userId",
@@ -205,36 +367,8 @@ exports.getAllItems = async (req, res) => {
       [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"],
     ];
 
-    // group 설정
-    const group = ["Item.id", "Region.id", "Category.id", "Favorites.id"]; // ✅ Favorites.id 추가
+    const group = ["Item.id", "Region.id", "Category.id", "Favorites.id"];
 
-    // 거래 상태 필터 (HAVING)
-    let havingCondition = {};
-    if (status === "available") {
-      havingCondition.buyerId = { [Op.eq]: null };
-    } else if (status === "completed") {
-      havingCondition.buyerId = { [Op.not]: null };
-    }
-
-    // 정렬 로직
-    let order = [];
-    if (sortBy === "popular") {
-      order = [[Sequelize.literal("favCount"), "DESC"]];
-    } else {
-      order = [["createdAt", "DESC"]];
-    }
-
-    // `Favorite` 모델에서 userId 조건을 동적으로 설정
-    const favoriteInclude = {
-      model: Favorite,
-      attributes: ["userId"],
-      required: false,
-    };
-    if (userId) {
-      favoriteInclude.where = { userId }; // ✅ 로그인한 경우에만 userId 필터 적용
-    }
-
-    // findAll 쿼리 실행
     const items = await Item.findAll({
       where: filter,
       attributes,
@@ -244,7 +378,7 @@ exports.getAllItems = async (req, res) => {
           attributes: [],
           required: false,
         },
-        favoriteInclude, // ✅ userId가 null일 경우 찜 여부 조회 X
+        favoriteInclude,
         {
           model: Region,
           attributes: ["id", "district"],
@@ -267,11 +401,16 @@ exports.getAllItems = async (req, res) => {
       order,
     });
 
-    // 프론트엔드에 전달할 데이터 변환 (찜 여부 추가)
-    const responseData = items.map((item) => ({
-      ...item.get({ plain: true }),
-      isFavorite: userId ? item.Favorites && item.Favorites.length > 0 : false, // ✅ 로그인하지 않은 경우 찜 여부 false
-    }));
+    // plain 객체 변환 후, Favorites 배열에서 현재 사용자가 찜했는지 여부 확인
+    const responseData = items.map((item) => {
+      const plainItem = item.get({ plain: true });
+      return {
+        ...plainItem,
+        isFavorite: userId
+          ? (plainItem.Favorites || []).some((fav) => fav.userId === userId)
+          : false,
+      };
+    });
 
     return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
@@ -284,7 +423,8 @@ exports.getAllItems = async (req, res) => {
 exports.getItemDetail = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const userId = 1; // 또는 req.user?.id || null;
+    const userId = req.user?.id || null;
+    console.log("유저id", userId);
 
     //  상품 조회
     const item = await Item.findOne({
@@ -383,12 +523,12 @@ exports.searchItems = async (req, res) => {
         {
           model: ItemImage,
           as: "ItemImages",
-          attributes: [], //`GROUP_CONCAT` 사용하므로 개별 `id` 불필요
+          attributes: [],
           required: false,
         },
         {
           model: Favorite,
-          attributes: [], //`id`를 포함하지 않음 (집계 문제 해결)
+          attributes: [],
           required: false,
           where: userId ? { userId } : undefined, //로그인한 사용자만 찜 정보 조회
         },
@@ -413,7 +553,7 @@ exports.searchItems = async (req, res) => {
           "favoriteUser",
         ], //찜 여부 확인
       ],
-      group: ["Item.id", "Category.id", "Region.id"], //`ItemImages.id`, `Favorites.id` 제거하여 오류 해결
+      group: ["Item.id", "Category.id", "Region.id"],
     });
 
     // 데이터 변환
@@ -435,7 +575,9 @@ exports.searchItems = async (req, res) => {
 exports.addToFavorites = async (req, res) => {
   try {
     const { itemId } = req.body; // 요청에서 userId, itemId 받기
-    userId = 1; //임시로 저장
+    const userId = req.user?.id || null; //로그인 여부 체크
+
+    console.log("userID:", userId);
 
     // 필수 값 확인
     if (!userId || !itemId) {
@@ -482,7 +624,8 @@ exports.removeFromFavorites = async (req, res) => {
     console.log("Received DELETE request:", req.params);
 
     const { itemId } = req.params;
-    const userId = 1; // 임시로 저장 (실제 로그인 유저로 변경해야 함)
+    const userId = 1;
+    // const userId = req.user?.id || null; //로그인 여부 체크
 
     // 필수 값 확인
     if (!userId || !itemId) {
