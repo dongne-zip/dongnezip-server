@@ -191,13 +191,13 @@ exports.updateItem = async (req, res) => {
       itemStatus,
       latitude,
       longitude,
-      placeName, // map 테이블 컬럼
+      placeName,
     } = req.body;
 
     // 테스트를 위한 임시 userId, 실제 환경에서는 req.user.id 사용
     const userId = 2;
 
-    // 수정할 상품 조회 (transaction 옵션을 첫번째 객체에 포함)
+    // 수정할 상품 조회
     const item = await Item.findOne({ where: { id: itemId }, transaction });
     if (!item) {
       await transaction.rollback();
@@ -215,7 +215,7 @@ exports.updateItem = async (req, res) => {
     }
 
     let regionData, mapData;
-    // 좌표 정보가 제공되면 위치 정보 업데이트 진행 (placeName도 함께 업데이트)
+    // 좌표 정보가 제공되면 위치 정보 업데이트 진행
     if (latitude && longitude) {
       const { province, district, address, roadAddress } =
         await getAddressFromCoordinatesKakao(latitude, longitude);
@@ -347,7 +347,7 @@ exports.getAllItems = async (req, res) => {
       order = [["createdAt", "DESC"]];
     }
 
-    // 전체 찜 개수를 위한 include (기본 alias "Favorites" 사용)
+    // 전체 찜 개수를 위한 include
     const favoriteInclude = {
       model: Favorite,
       as: "Favorites",
@@ -500,8 +500,8 @@ exports.getItemDetail = async (req, res) => {
 // GET /api-server/items?keyword=검색어
 exports.searchItems = async (req, res) => {
   try {
-    let { keyword } = req.query;
-    const userId = req.user?.id || null; //로그인 여부 체크
+    const { keyword } = req.query;
+    const userId = req.user?.id || null; // 로그인 여부 체크
 
     if (!keyword) {
       return res
@@ -509,28 +509,20 @@ exports.searchItems = async (req, res) => {
         .json({ success: true, message: "상품이 없습니다." });
     }
 
-    //상품 목록 조회
     const items = await Item.findAll({
       where: {
         [Op.or]: [
-          { title: { [Op.like]: `%${keyword}%` } }, //제목 검색
-          { detail: { [Op.like]: `%${keyword}%` } }, //상세 설명 검색
+          { title: { [Op.like]: `%${keyword}%` } }, // 제목 검색
+          { detail: { [Op.like]: `%${keyword}%` } }, // 상세 설명 검색
         ],
       },
       include: [
-        { model: Category, attributes: ["id", "category"] }, //카테고리 정보 추가
-        { model: Region, attributes: ["id", "district"] }, //지역 정보 추가
+        { model: Category, attributes: ["id", "category"] }, // 카테고리 정보 추가
+        { model: Region, attributes: ["id", "district"] }, // 지역 정보 추가
         {
           model: ItemImage,
-          as: "ItemImages",
           attributes: [],
           required: false,
-        },
-        {
-          model: Favorite,
-          attributes: [],
-          required: false,
-          where: userId ? { userId } : undefined, //로그인한 사용자만 찜 정보 조회
         },
       ],
       attributes: [
@@ -543,25 +535,48 @@ exports.searchItems = async (req, res) => {
         "categoryId",
         "regionId",
         "createdAt",
+        // 여러 이미지를 하나의 문자열로 집계
         [
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
-        ], //여러 이미지 가져오기
-        [Sequelize.fn("COUNT", Sequelize.col("Favorites.user_id")), "favCount"], //찜 개수 계산
+        ],
+        // 전체 찜 개수: Favorite 테이블에서 해당 아이템의 전체 찜 수 계산
         [
-          Sequelize.fn("ANY_VALUE", Sequelize.col("Favorites.user_id")),
-          "favoriteUser",
-        ], //찜 여부 확인
+          Sequelize.literal(
+            `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
+          ),
+          "favCount",
+        ],
+        // 현재 사용자 찜 여부: 로그인한 경우, 해당 아이템에 대해 현재 사용자의 찜 수 계산 (0보다 크면 찜한 것으로 간주)
+        [
+          Sequelize.literal(
+            userId
+              ? `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id AND Favorite.user_id = ${userId})`
+              : "0"
+          ),
+          "isFavoriteCount",
+        ],
       ],
       group: ["Item.id", "Category.id", "Region.id"],
     });
 
-    // 데이터 변환
-    const responseData = items.map((item) => ({
-      ...item.get({ plain: true }),
-      isFavorite: userId ? item.favoriteUser !== null : false, //로그인한 경우 찜 여부 확인, 비로그인 사용자는 false
-      images: item.imageUrls ? item.imageUrls.split(",") : [], //여러 이미지 배열 변환
-    }));
+    // 검색 결과가 없는 경우 메시지 반환
+    if (items.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "찾는 상품이 없습니다." });
+    }
+
+    // 조회된 데이터를 plain 객체로 변환 후,
+    // isFavoriteCount를 바탕으로 isFavorite 값만 응답에 포함
+    const responseData = items.map((item) => {
+      const { isFavoriteCount, imageUrls, ...rest } = item.get({ plain: true });
+      return {
+        ...rest,
+        isFavorite: Number(isFavoriteCount) > 0,
+        images: imageUrls ? imageUrls.split(",") : [],
+      };
+    });
 
     return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
