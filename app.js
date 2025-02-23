@@ -10,21 +10,13 @@ require("./passport/localStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
-
-const PORT = 8080;
 require("dotenv").config();
 
 const app = express();
 const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
 
-const socketHandler = require("./socket/index");
-
 socketHandler(server);
-
-// 라우터 모듈
-const indexRouter = require("./routes/index");
-const chatRouter = require("./routes/chat");
 
 app.use(cors());
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -32,7 +24,7 @@ app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
 // Swagger 설정 적용
-setupSwagger(app);
+// setupSwagger(app);
 
 // // 라우터 임포트
 const indexRouter = require("./routes/index");

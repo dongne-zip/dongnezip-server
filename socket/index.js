@@ -1,5 +1,4 @@
 const socketIO = require("socket.io");
-<<<<<<< Updated upstream
 const { ChatMessage } = require("../model/index");
 
 let io;
@@ -14,6 +13,10 @@ function socketHandler(server) {
   const nickInfo = {}; // socket.id : nickname
 
   io.on("connection", (socket) => {
+    socket.on("joinRoom", (roomId) => {
+      socket.join(roomId);
+    });
+
     // 입장 시 안내문구
     socket.on("checkNick", (nickname) => {
       nickInfo[socket.id] = nickname;
@@ -31,21 +34,22 @@ function socketHandler(server) {
 
     // 메세지 전송
     socket.on("send", async (msgData) => {
-      console.log("sendData", msgData);
       try {
         await ChatMessage.create({
           roomId: msgData.roomId,
-          senderId: msgData.myNick,
+          senderId: msgData.senderId,
           message: msgData.msg,
           isRead: false,
-          msgType: "text",
+          msgType: msgData.type,
         });
       } catch (err) {
         console.error(err);
       }
       io.to(msgData.roomId).emit("message", {
-        nick: msgData.myNick,
+        type: msgData.type,
+        sender: msgData.senderId,
         message: msgData.msg,
+        isRead: false,
       });
     });
   });
@@ -59,15 +63,3 @@ function getIO() {
 }
 
 module.exports = { socketHandler, getIO };
-=======
-
-function socketHandler(server) {
-  const io = socketIO(server, {
-    cors: {
-      origin: "http://localhost:8080",
-    },
-  });
-}
-
-module.exports = socketHandler;
->>>>>>> Stashed changes

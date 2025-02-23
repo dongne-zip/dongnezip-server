@@ -1,4 +1,3 @@
-
 const { ChatMessage, ChatRoom } = require("../model");
 const { Op } = require("sequelize");
 const { getIO } = require("../socket/index");
@@ -10,6 +9,22 @@ exports.chat = async (req, res) => {
     const room = await ChatRoom.findAll();
 
     res.json({ message: message, room: room });
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+// 채팅방 생성
+exports.createChatRoom = async (req, res) => {
+  try {
+    const { chatHost, itemId } = req.doby;
+    const newChatRoom = await ChatRoom.create({
+      chatHost,
+      itemId,
+      chatGuest: null,
+    });
+
+    res.json({ roomId: newChatRoom.id });
   } catch (err) {
     console.error(err);
   }
@@ -75,4 +90,6 @@ exports.messageAsRead = async (req, res) => {
 
     res.json(updateCount);
   } catch (err) {
-    console.error(err)};
+    console.error(err);
+  }
+};
