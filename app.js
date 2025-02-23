@@ -15,10 +15,20 @@ require("dotenv").config();
 const app = express();
 const { socketHandler } = require("./socket/index");
 const server = http.createServer(app);
+<<<<<<< HEAD
+=======
+const swaggerUi = require("swagger-ui-express");
+const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불러오기
+>>>>>>> 7dee080cbb3a619c782a24b69ddbb173bf386642
 
 socketHandler(server);
 
-app.use(cors());
+const corsOptions = {
+  origin: "http://localhost:3001",
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
@@ -41,7 +51,7 @@ app.use(`${prefix}/item`, itemRouter);
 app.use(`${prefix}/user`, userRouter);
 
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);

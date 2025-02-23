@@ -35,12 +35,55 @@ router.post("/login/local", (req, res, next) => {
   })(req, res, next);
 });
 
+// 카카오 로그인
+router.get("/login/kakao", (req, res, next) => {
+  console.log("카카오 로그인 요청");
+  passport.authenticate("kakao", { session: false })(req, res, next);
+});
+
+// 카카오 로그인 콜백
+router.get(
+  "/kakao/callback",
+  passport.authenticate("kakao", {
+    session: false,
+  }),
+  (req, res, next) => {
+    console.log("ㅇㅇㅇㅇㅇㅇㅇㅇㅇㅇㅇㅇㅇ");
+    UserController.kakaoLogin(req, res, next);
+  },
+  (err, req, res, next) => {
+    console.error("Kakao login failed:", err);
+    res.status(401).json({
+      message: "카카오 로그인 실패",
+      error: err.message,
+    });
+  }
+);
+
+// 구글 로그인
+router.get(
+  "/login//google",
+  passport.authenticate(
+    "google",
+    { session: false },
+    { scope: ["email", "profile"] }
+  )
+);
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/",
+  }),
+  UserController.googleLogin
+);
+
 // 로그아웃
 router.post("/logout", authenticateToken, UserController.logout);
 
 // 프로필 이미지 수정
 router.post(
   "/changeImg",
+  authenticateToken,
   upload.single("profileImg"),
   UserController.changeImg
 );

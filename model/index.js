@@ -44,24 +44,20 @@ db.Item.belongsTo(db.User, {
 db.User.hasMany(db.Transaction, {
   foreignKey: "seller_id",
   sourceKey: "id",
-  as: "SellingTransactions",
 });
 db.Transaction.belongsTo(db.User, {
   foreignKey: "seller_id",
   targetKey: "id",
-  as: "Seller",
 });
 
 // 3) User → Transaction (구매자 관계)
 db.User.hasMany(db.Transaction, {
   foreignKey: "buyer_id",
   sourceKey: "id",
-  as: "BuyingTransactions",
 });
 db.Transaction.belongsTo(db.User, {
   foreignKey: "buyer_id",
   targetKey: "id",
-  as: "Buyer",
 });
 
 // 4) Item → ItemImage (1:N) - 상품이 삭제되면 이미지도 삭제

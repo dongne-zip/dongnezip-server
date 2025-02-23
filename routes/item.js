@@ -4,25 +4,26 @@ const router = express.Router();
 const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 
+console.log(controller);
 /** 전체 상품 조회 */
-// GET /api-server/item
+// GET /api-server/item/item
 router.get("/item", controller.getAllItems);
 
 /** 상품 검색 */
-// GET /api-server/search?keyword=검색어
+// GET /api-server/item/search?keyword=검색어
 router.get("/search", controller.searchItems);
 
-// /** 지역 설정 */
-// // POST /api-server/item/pickRegion
-// router.post("/pickRegion", authenticateToken, controller.setRegion);
-
-// /** 카테고리 설정 */
-// // POST /api-server/item/pickCategory
-// router.post("/pickCategory", authenticateToken, controller.setCategory);
+/** 상품 상세 조회 */
+// GET /api-server/item/:itemId
+router.get("/:itemId", controller.getItemDetail);
 
 /** 판매 글 등록 */
 // POST /api-server/item/addItem
 router.post("/addItem", upload.array("images", 5), controller.createItem);
+
+/** 판매 글 삭제 */
+// DELETE /api-server/item/:itemId
+router.delete("/:itemId", controller.deleteItem);
 
 // /** 판매 글 수정 */
 // // POST /api-server/item/editItem
@@ -39,6 +40,14 @@ router.post("/favorites", controller.addToFavorites);
 /** 상품 찜 취소 */
 // DELETE /api-server/item/favorites/:itemId
 router.delete("/favorites/:itemId", controller.removeFromFavorites);
+
+/** 상품 거래 완료 */
+//POST /api-server/item/:itemId/complete
+// router.post(
+//   "/:itemId/complete",
+//   authenticateToken,
+//   controller.completeItemTransaction
+// );
 
 // /** 찜한 상품 목록 조회 */
 // // GET /api-server/item/favorites
