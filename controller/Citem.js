@@ -66,7 +66,8 @@ exports.createItem = async (req, res) => {
       longitude,
       placeName,
     } = req.body;
-    const userId = 2; // 현재 로그인된 사용자 (판매자)
+
+    const userId = req.user?.id || null;
 
     if (
       !categoryId ||
@@ -194,9 +195,7 @@ exports.updateItem = async (req, res) => {
       placeName,
     } = req.body;
 
-    // 테스트를 위한 임시 userId, 실제 환경에서는 req.user.id 사용
-    const userId = 2;
-
+    const userId = req.user?.id || null;
     // 수정할 상품 조회
     const item = await Item.findOne({ where: { id: itemId }, transaction });
     if (!item) {
@@ -323,7 +322,7 @@ exports.getAllItems = async (req, res) => {
   try {
     let { categoryId, regionId, status, sortBy } = req.query;
     // 실제 환경에서는 req.user?.id로 받아오고, 여기서는 예시로 3 사용
-    const userId = req.user?.id || 3;
+    const userId = req.user?.id || null;
 
     const filter = {};
     if (categoryId && parseInt(categoryId, 10) > 0) {
@@ -420,6 +419,9 @@ exports.getAllItems = async (req, res) => {
 };
 
 /** 특정 상품 상세 조회 */
+// GET /api-server/item/:itemId
+/** 특정 상품 상세 조회 */
+// GET /api-server/item/:itemId
 exports.getItemDetail = async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -442,10 +444,10 @@ exports.getItemDetail = async (req, res) => {
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
         ],
-        // 전체 찜 개수: Favorite 테이블에서 해당 아이템의 전체 찜 수 계산
+        // 전체 찜 개수: favorite 테이블에서 해당 아이템의 전체 찜 수 계산
         [
           Sequelize.literal(
-            `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
+            `(SELECT COUNT(*) FROM favorite WHERE favorite.item_id = Item.id)`
           ),
           "favCount",
         ],
@@ -453,7 +455,7 @@ exports.getItemDetail = async (req, res) => {
         [
           Sequelize.literal(
             userId
-              ? `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id AND Favorite.user_id = ${userId})`
+              ? `(SELECT COUNT(*) FROM favorite WHERE favorite.item_id = Item.id AND favorite.user_id = ${userId})`
               : "0"
           ),
           "isFavoriteCount",
@@ -481,7 +483,7 @@ exports.getItemDetail = async (req, res) => {
           required: false,
         },
       ],
-      group: ["Item.id", "Region.id", "Category.id", "Map.id"],
+      group: ["Item.id", "Region.id", "Category.id", "map.id"],
     });
 
     if (!item) {
@@ -647,8 +649,7 @@ exports.removeFromFavorites = async (req, res) => {
     console.log("Received DELETE request:", req.params);
 
     const { itemId } = req.params;
-    const userId = 1;
-    // const userId = req.user?.id || null; //로그인 여부 체크
+    const userId = req.user?.id || null; //로그인 여부 체크
 
     // 필수 값 확인
     if (!userId || !itemId) {
@@ -685,8 +686,9 @@ exports.removeFromFavorites = async (req, res) => {
 exports.deleteItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    //const userId = req.user.id; // JWT 미들웨어를 통해 설정된 사용자 ID
-    const userId = 1;
+
+    const userId = req.user.id; // JWT 미들웨어를 통해 설정된 사용자 ID
+    console.log("userID:", userId);
 
     // 1. 아이템 조회
     const item = await Item.findOne({ where: { id: itemId } });

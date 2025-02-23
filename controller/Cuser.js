@@ -356,7 +356,7 @@ exports.logout = (req, res, next) => {
 exports.changeImg = async (req, res) => {
   try {
     const getUser = req.user;
-    console.log(getUser);
+
     if (!req.file) {
       return res.status(400).json({ message: "이미지를 업로드해주세요." });
     }
@@ -458,7 +458,6 @@ exports.checkNick = async (req, res) => {
 };
 
 /* 마이페이지 */
-
 // 마이페이지 메인
 exports.mypage = async (req, res) => {
   try {
