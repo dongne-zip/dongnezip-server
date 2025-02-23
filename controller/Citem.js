@@ -424,9 +424,7 @@ exports.getItemDetail = async (req, res) => {
   try {
     const { itemId } = req.params;
     const userId = req.user?.id || null;
-    console.log("유저id", userId);
 
-    //  상품 조회
     const item = await Item.findOne({
       where: { id: itemId },
       attributes: [
@@ -439,18 +437,29 @@ exports.getItemDetail = async (req, res) => {
         "categoryId",
         "regionId",
         "createdAt",
+        // 여러 이미지를 하나의 문자열로 집계
         [
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
-        ], //  여러 이미지 가져오기
+        ],
+        // 전체 찜 개수: Favorite 테이블에서 해당 아이템의 전체 찜 수 계산
+        [
+          Sequelize.literal(
+            `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
+          ),
+          "favCount",
+        ],
+        // 현재 사용자 찜 여부: 로그인한 경우, 해당 아이템에 대해 현재 사용자의 찜 수 계산 (0보다 크면 찜한 것으로 간주)
+        [
+          Sequelize.literal(
+            userId
+              ? `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id AND Favorite.user_id = ${userId})`
+              : "0"
+          ),
+          "isFavoriteCount",
+        ],
       ],
       include: [
-        {
-          model: Favorite,
-          attributes: [], // `id` 없이 존재 여부만 확인
-          required: false,
-          where: userId ? { userId } : undefined, //  사용자의 찜 여부 확인
-        },
         {
           model: Region,
           attributes: ["id", "district"],
@@ -466,8 +475,13 @@ exports.getItemDetail = async (req, res) => {
           attributes: [],
           required: false,
         },
+        {
+          model: Map,
+          attributes: ["address", "placeName"],
+          required: false,
+        },
       ],
-      group: ["Item.id", "Region.id", "Category.id"],
+      group: ["Item.id", "Region.id", "Category.id", "Map.id"],
     });
 
     if (!item) {
@@ -476,17 +490,14 @@ exports.getItemDetail = async (req, res) => {
         .json({ success: false, message: "상품을 찾을 수 없습니다." });
     }
 
-    // 여러 이미지 가져오기
-    const imageUrls = item.imageUrls ? item.imageUrls.split(",") : [];
-
-    // 사용자가 찜했는지 여부 확인
-    const isFavorite = !!item.Favorites; // `Favorites`가 존재하면 true, 없으면 false
-
-    // 응답 데이터 변환
+    const plainItem = item.get({ plain: true });
+    const { isFavoriteCount, imageUrls, ...rest } = plainItem;
+    const isFavorite = Number(isFavoriteCount) > 0;
     const responseData = {
-      ...item.get({ plain: true }),
-      isFavorite, // 사용자가 찜했는지 여부 추가
-      images: imageUrls, // 여러 이미지 배열 변환
+      ...rest,
+      isFavorite, // 현재 사용자가 찜했는지 여부
+      favCount: Number(plainItem.favCount), // 전체 찜 개수
+      images: imageUrls ? imageUrls.split(",") : [],
     };
 
     return res.status(200).json({ success: true, data: responseData });
@@ -540,19 +551,17 @@ exports.searchItems = async (req, res) => {
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
         ],
-        // 전체 찜 개수: Favorite 테이블에서 해당 아이템의 전체 찜 수 계산
+        // 전체 찜 개수 계산
         [
           Sequelize.literal(
             `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
           ),
           "favCount",
         ],
-        // 현재 사용자 찜 여부: 로그인한 경우, 해당 아이템에 대해 현재 사용자의 찜 수 계산 (0보다 크면 찜한 것으로 간주)
+        // 로그인 여부와 상관없이 전체 찜 개수를 다시 계산하여 isFavoriteCount로 사용
         [
           Sequelize.literal(
-            userId
-              ? `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id AND Favorite.user_id = ${userId})`
-              : "0"
+            `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
           ),
           "isFavoriteCount",
         ],
@@ -567,8 +576,7 @@ exports.searchItems = async (req, res) => {
         .json({ success: true, message: "찾는 상품이 없습니다." });
     }
 
-    // 조회된 데이터를 plain 객체로 변환 후,
-    // isFavoriteCount를 바탕으로 isFavorite 값만 응답에 포함
+    // 응답 데이터 변환: isFavorite은 전체 찜 개수가 0보다 큰지 여부로 결정
     const responseData = items.map((item) => {
       const { isFavoriteCount, imageUrls, ...rest } = item.get({ plain: true });
       return {
