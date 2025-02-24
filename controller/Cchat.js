@@ -12,23 +12,31 @@ exports.chat = async (req, res) => {
 
     res.json({ message: message });
   } catch (err) {
-    console.error(err);
+    console.error("chatError", err);
   }
 };
 
 // 채팅방 생성
 exports.createChatRoom = async (req, res) => {
   try {
-    const { chatHost, itemId } = req.doby;
+    const { chatHost, itemId, chatGuest } = req.body;
+    // 중복 체크
+    const existngRoom = await ChatRoom.findOne({
+      where: { chatHost, chatGuest, itemId },
+    });
+    if (existngRoom) {
+      return res.json({ roomId: existngRoom.id });
+    }
+    // 채팅방 생성
     const newChatRoom = await ChatRoom.create({
       chatHost,
       itemId,
-      chatGuest: null,
+      chatGuest,
     });
 
     res.json({ roomId: newChatRoom.id });
   } catch (err) {
-    console.error(err);
+    console.error("chatRoomError", err);
   }
 };
 
@@ -59,7 +67,7 @@ exports.image = async (req, res) => {
 
     res.json({ data: newMessage });
   } catch (err) {
-    console.error(err);
+    console.error("imageError", err);
   }
 };
 
@@ -92,6 +100,6 @@ exports.messageAsRead = async (req, res) => {
 
     res.json(updateCount);
   } catch (err) {
-    console.error(err);
+    console.error("readError", err);
   }
 };
