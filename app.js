@@ -6,7 +6,7 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
-// require("./passport/kakaoStrategy")();
+require("./passport/kakaoStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
@@ -24,7 +24,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(cookieParser());
 app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
@@ -36,6 +36,7 @@ const indexRouter = require("./routes/index");
 const chatRouter = require("./routes/chat");
 const userRouter = require("./routes/user");
 const itemRouter = require("./routes/item");
+const { truncate } = require("fs");
 
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);

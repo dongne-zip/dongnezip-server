@@ -1,6 +1,11 @@
 const aws = require("aws-sdk");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
+const dotenv = require("dotenv");
+
+// 현재 실행 중인 환경을 확인하고, 해당하는 .env 파일 로드
+const env = process.env.NODE_ENV || "development";
+dotenv.config({ path: `.env.${env}` });
 
 // AWS S3 설정
 const s3 = new aws.S3({
