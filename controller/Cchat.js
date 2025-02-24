@@ -5,13 +5,38 @@ const { getIO } = require("../socket/index");
 // front에 sql값 전달
 exports.chat = async (req, res) => {
   try {
-    const message = await ChatMessage.findAll();
+    const roomId = req.params.roomId;
+    const message = await ChatMessage.findAll({
+      where: { roomId },
+    });
 
-    const room = await ChatRoom.findAll();
-
-    res.json({ message: message, room: room });
+    res.json({ message: message });
   } catch (err) {
-    console.error(err);
+    console.error("chatError", err);
+  }
+};
+
+// 채팅방 생성
+exports.createChatRoom = async (req, res) => {
+  try {
+    const { chatHost, itemId, chatGuest } = req.body;
+    // 중복 체크
+    const existngRoom = await ChatRoom.findOne({
+      where: { chatHost, chatGuest, itemId },
+    });
+    if (existngRoom) {
+      return res.json({ roomId: existngRoom.id });
+    }
+    // 채팅방 생성
+    const newChatRoom = await ChatRoom.create({
+      chatHost,
+      itemId,
+      chatGuest,
+    });
+
+    res.json({ roomId: newChatRoom.id });
+  } catch (err) {
+    console.error("chatRoomError", err);
   }
 };
 
@@ -42,7 +67,7 @@ exports.image = async (req, res) => {
 
     res.json({ data: newMessage });
   } catch (err) {
-    console.error(err);
+    console.error("imageError", err);
   }
 };
 
@@ -75,6 +100,6 @@ exports.messageAsRead = async (req, res) => {
 
     res.json(updateCount);
   } catch (err) {
-    console.error(err);
+    console.error("readError", err);
   }
 };

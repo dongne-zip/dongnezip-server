@@ -13,38 +13,51 @@ function socketHandler(server) {
   const nickInfo = {}; // socket.id : nickname
 
   io.on("connection", (socket) => {
+    socket.on("joinRoom", (roomId) => {
+      socket.join(roomId);
+    });
+
     // 입장 시 안내문구
-    socket.on("checkNick", (nickname) => {
-      nickInfo[socket.id] = nickname;
-
-      socket.emit("success", nickname);
-
-      io.emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
+    socket.on("checkNick", (userNickname, roomId) => {
+      nickInfo[socket.id] = userNickname;
+      socket.emit("success", userNickname);
+      io.to(roomId).emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
     });
 
     // 퇴장 시 안내문구
     socket.on("disconnect", () => {
-      io.emit("notice", nickInfo[socket.id] + "님이 퇴장하였습니다.");
+      const rooms = Object.keys(socket.rooms);
+      rooms.forEach((room) => {
+        io.to(room).emit(
+          "notice",
+          nickInfo[socket.id] + "님이 퇴장하였습니다."
+        );
+      });
       delete nickInfo[socket.id];
     });
 
     // 메세지 전송
     socket.on("send", async (msgData) => {
-      console.log("sendData", msgData);
       try {
         await ChatMessage.create({
           roomId: msgData.roomId,
-          senderId: msgData.myNick,
+          senderId: msgData.senderId,
+          senderNick: msgData.senderNick,
           message: msgData.msg,
           isRead: false,
-          msgType: "text",
+          msgType: msgData.type,
         });
+
+        const data = await ChatMessage.findAll();
       } catch (err) {
         console.error(err);
       }
       io.to(msgData.roomId).emit("message", {
-        nick: msgData.myNick,
+        type: msgData.type,
+        sender: msgData.senderId,
+        nick: msgData.senderNick,
         message: msgData.msg,
+        isRead: false,
       });
     });
   });
