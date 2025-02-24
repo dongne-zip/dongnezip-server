@@ -14,6 +14,24 @@ const SALT = 10;
 const SECRET_KEY = process.env.SECRET_KEY;
 
 /* api */
+
+// 로그인 유지
+exports.token = async (req, res, next) => {
+  const getUser = req.user;
+  try {
+    const user = await User.findOne({ where: { id: getUser.id } });
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+    return res.json({ result: true, nickname: user.nickname });
+  } catch {
+    console.error("user 정보 찾을 수 없음:", error);
+    return res.status(500).json({
+      message: "user 정보를 찾을 수 없습니다!",
+    });
+  }
+};
+
 /* 이메일 인증 */
 // 인증 번호 이메일 전송
 exports.sendCode = async (req, res, next) => {
@@ -384,7 +402,7 @@ exports.changeImg = async (req, res) => {
 
 // 회원 정보 수정
 exports.changeInfo = async (req, res, next) => {
-  const { nickname, oldPwd, newPwd } = req.body;
+  const { nickname, oldPw, newPw } = req.body;
 
   try {
     const getUser = req.user || null;
@@ -398,15 +416,22 @@ exports.changeInfo = async (req, res, next) => {
       return res.json({ message: "사용자를 찾을 수 없습니다." });
     }
 
-    const isMatch = await bcrypt.compare(oldPwd, user.password);
-    if (!isMatch) {
-      return res.json({ message: "현재 비밀번호가 일치하지 않습니다." });
-    }
-    const salt = await bcrypt.genSalt(SALT);
-    const hash = await bcrypt.hash(newPwd, salt);
-    user.password = hash;
+    // 비밀번호를 수정하려는 경우, 비밀번호 확인 과정 추가
+    if (newPw) {
+      const isMatch = await bcrypt.compare(oldPw, user.password);
+      if (!isMatch) {
+        return res.json({ message: "현재 비밀번호가 일치하지 않습니다." });
+      }
 
-    user.nickname = nickname || user.nickname;
+      const salt = await bcrypt.genSalt(SALT);
+      const hash = await bcrypt.hash(newPw, salt);
+      user.password = hash; // 비밀번호 수정
+    }
+
+    // 닉네임을 수정하려는 경우, 닉네임 수정
+    if (nickname) {
+      user.nickname = nickname;
+    }
 
     await user.save();
     return res.json({ result: true, message: "회원 정보 수정 성공", user });

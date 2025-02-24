@@ -11,15 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       email: {
         type: DataTypes.STRING(40),
-        allowNull: true,
+        allowNull: false,
         unique: true,
         field: "email",
-      },
-      snsId: {
-        type: DataTypes.STRING(40),
-        allowNull: true,
-        unique: true,
-        field: "snsId",
       },
       provider: {
         type: DataTypes.ENUM("local", "kakao", "google"),
@@ -29,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       password: {
         type: DataTypes.STRING(100),
-        allowNull: true,
+        allowNull: false,
         field: "password",
       },
       name: {
@@ -52,7 +46,6 @@ module.exports = (sequelize, DataTypes) => {
     {
       freezeTableName: true,
       timestamps: true,
-      // paranoid: true, // soft delete
     }
   );
   return User;
