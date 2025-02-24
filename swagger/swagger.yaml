@@ -90,6 +90,80 @@ paths:
           description: "상품을 찾을 수 없음"
         "500":
           description: "서버 오류"
+    patch:
+      summary: "상품 수정"
+      description: "상품 정보를 수정합니다. 이미지 업데이트 및 지도 정보(placeName 포함) 수정 가능."
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          description: "수정할 상품의 ID"
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: "업로드할 이미지 파일 (다중 업로드 가능)"
+                  example: []
+                categoryId:
+                  type: integer
+                  example: 1
+                title:
+                  type: string
+                  example: "수정된 상품 제목"
+                price:
+                  type: integer
+                  example: 2500000
+                detail:
+                  type: string
+                  example: "수정된 상세 설명"
+                itemStatus:
+                  type: string
+                  example: "중"
+                latitude:
+                  type: number
+                  format: float
+                  example: 37.5665
+                longitude:
+                  type: number
+                  format: float
+                  example: 126.9780
+                placeName:
+                  type: string
+                  example: "삼성전자 서초사옥"
+      responses:
+        "200":
+          description: "상품 수정 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "상품이 성공적으로 수정되었습니다."
+                  data:
+                    $ref: "#/components/schemas/Item"
+        "400":
+          description: "잘못된 요청"
+        "403":
+          description: "수정 권한 없음"
+        "404":
+          description: "상품을 찾을 수 없음"
+        "500":
+          description: "서버 오류"
     delete:
       summary: "상품 삭제"
       description: "등록된 상품을 삭제합니다. 판매자 권한 확인 필요."
@@ -138,36 +212,34 @@ paths:
                     type: string
                     format: binary
                   description: "업로드할 이미지 파일 (다중 업로드 가능)"
+                  example: []
                 categoryId:
                   type: integer
                   example: 1
-                  description: "카테고리 ID"
                 title:
                   type: string
                   example: "맥북 프로 16인치 팝니다"
                   description: "상품 제목"
                 price:
                   type: integer
-                  example: 30000
-                  description: "상품 가격"
+                  example: 2000000
                 detail:
                   type: string
-                  example: "거의 새상품입니다. 실사용 1개월"
-                  description: "상품 상세 설명"
+                  example: "최신 모델로, 상태가 매우 좋으며 모든 부속품 포함"
                 itemStatus:
                   type: string
-                  example: "최상"
-                  description: "상품 상태"
+                  example: "중"
                 latitude:
                   type: number
                   format: float
                   example: 37.5665
-                  description: "위도 정보"
                 longitude:
                   type: number
                   format: float
                   example: 126.9780
-                  description: "경도 정보"
+                placeName:
+                  type: string
+                  example: "삼성전자 서초사옥"
       responses:
         "201":
           description: "상품 등록 성공"
@@ -260,6 +332,18 @@ components:
             district:
               type: string
               example: "강남구"
+        map:
+          type: object
+          properties:
+            address:
+              type: string
+              example: "서울특별시 강남구 테헤란로 521"
+            road_address:
+              type: string
+              example: "서울특별시 강남구 테헤란로 521 (삼성전자 서초사옥)"
+            placeName:
+              type: string
+              example: "삼성전자 서초사옥"
         imageUrl:
           type: string
           example: "https://example.com/image.jpg"

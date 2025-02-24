@@ -11,15 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       email: {
         type: DataTypes.STRING(40),
-        allowNull: true,
+        allowNull: false,
         unique: true,
         field: "email",
-      },
-      snsId: {
-        type: DataTypes.STRING(40),
-        allowNull: true,
-        unique: true,
-        field: "snsId",
       },
       provider: {
         type: DataTypes.ENUM("local", "kakao", "google"),
@@ -35,11 +29,11 @@ module.exports = (sequelize, DataTypes) => {
       name: {
         type: DataTypes.STRING(20),
         allowNull: true,
-        field: "user_nm",
+        field: "name",
       },
       nickname: {
         type: DataTypes.STRING(20),
-        allowNull: true,
+        allowNull: false,
         unique: true,
         field: "nickname",
       },
@@ -52,7 +46,6 @@ module.exports = (sequelize, DataTypes) => {
     {
       freezeTableName: true,
       timestamps: true,
-      // paranoid: true, // soft delete
     }
   );
   return User;

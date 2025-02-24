@@ -13,14 +13,9 @@ const nodemailer = require("nodemailer");
 const SALT = 10;
 const SECRET_KEY = process.env.SECRET_KEY;
 
-/* api */
-/* 이메일 인증 */
-// 인증 번호 이메일 전송
-exports.sendCode = async (req, res, next) => {
-  const { email } = req.body;
+const sendVerificationCode = async (email) => {
   try {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-
     const token = jwt.sign({ email, code }, process.env.SECRET_KEY, {
       expiresIn: "3m",
     });
@@ -47,20 +42,70 @@ exports.sendCode = async (req, res, next) => {
     // 이메일 전송
     await transporter.sendMail(mailOptions);
 
+    return token; // 생성한 토큰 반환
+  } catch (error) {
+    console.error("이메일 인증 코드 전송 실패:", error);
+  }
+};
+
+/* api */
+
+// 로그인 유지
+exports.token = async (req, res, next) => {
+  const getUser = req.user;
+  try {
+    const user = await User.findOne({ where: { id: getUser.id } });
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+    return res.json({ result: true, nickname: user.nickname, id: user.id });
+  } catch (error) {
+    console.error("user 정보 찾을 수 없음:", error);
+    return res.status(500).json({
+      message: "user 정보를 찾을 수 없습니다!",
+    });
+  }
+};
+
+/* 이메일 인증 */
+// 인증 번호 이메일 전송
+exports.sendCode = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const token = await sendVerificationCode(email); // 공통 함수 호출
+
     return res.json({
       result: true,
       message: "이메일로 인증번호를 발송했습니다. 인증번호를 입력해주세요.",
       token,
     });
   } catch (error) {
-    console.error("이메일 인증 코드 전송 실패:", error);
     return res.status(500).json({
       message: "이메일 전송 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
     });
   }
 };
 
-// 인증번호 검증
+// 비밀번호 찾기
+exports.findPw = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const token = await sendVerificationCode(email); // 공통 함수 호출
+
+    return res.json({
+      result: true,
+      message: "비밀번호 찾기를 위한 인증번호가 이메일로 발송되었습니다.",
+      token,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "이메일 전송 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
+    });
+  }
+};
+
 exports.verifyCode = (req, res, next) => {
   const { code, token } = req.body;
 
@@ -110,102 +155,6 @@ exports.join = async (req, res, next) => {
     return next(error);
   }
 };
-
-// 비밀번호 찾기
-exports.findPw = async (req, res, next) => {};
-
-/* test */
-// const sendVerificationCode = async (email) => {
-//   try {
-//     const code = Math.floor(100000 + Math.random() * 900000).toString();
-//     const token = jwt.sign({ email, code }, process.env.SECRET_KEY, {
-//       expiresIn: "3m",
-//     });
-
-//     const transporter = nodemailer.createTransport({
-//       service: "gmail",
-//       auth: {
-//         user: process.env.GMAIL_USER,
-//         pass: process.env.GMAIL_PASSWORD,
-//       },
-//     });
-
-//     const mailOptions = {
-//       from: process.env.GMAIL_USER,
-//       to: email,
-//       subject: "dongnezio 이메일 인증번호",
-//       html: `
-//         <p>안녕하세요! dongnezip을 방문해 주셔서 감사합니다!</p>
-//         <p>회원가입을 완료하려면 아래 인증번호를 입력해 주세요.</p>
-//         <p>인증번호: <strong>${code}</strong></p>
-//       `,
-//     };
-
-//     // 이메일 전송
-//     await transporter.sendMail(mailOptions);
-
-//     return token; // 생성한 토큰 반환
-//   } catch (error) {
-//     console.error("이메일 인증 코드 전송 실패:", error);
-//   }
-// };
-
-// // 인증 번호 이메일 전송
-// exports.sendCode = async (req, res, next) => {
-//   const { email } = req.body;
-
-//   try {
-//     const token = await sendVerificationCode(email); // 공통 함수 호출
-
-//     return res.json({
-//       result: true,
-//       message: "이메일로 인증번호를 발송했습니다. 인증번호를 입력해주세요.",
-//       token,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       message: "이메일 전송 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
-//     });
-//   }
-// };
-
-// exports.findPw = async (req, res, next) => {
-//   const { email } = req.body;
-
-//   try {
-//     const token = await sendVerificationCode(email); // 공통 함수 호출
-
-//     return res.json({
-//       result: true,
-//       message: "비밀번호 찾기를 위한 인증번호가 이메일로 발송되었습니다.",
-//       token,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       message: "이메일 전송 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
-//     });
-//   }
-// };
-
-// exports.verifyCode = (req, res, next) => {
-//   const { code, token } = req.body;
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-
-//     // 인증번호 비교
-//     if (decoded.code === code) {
-//       return res.json({ result: true, message: "인증 성공!" });
-//     } else {
-//       return res.json({
-//         message: "인증번호가 일치하지 않습니다. 다시 시도해주세요.",
-//       });
-//     }
-//   } catch (error) {
-//     console.error("인증번호 검증 실패:", error);
-//     return res.json({ message: "JWT 검증 실패 또는 만료된 토큰입니다." });
-//   }
-// };
 
 // 아이디 중복 검사
 exports.checkId = async (req, res) => {
@@ -356,7 +305,7 @@ exports.logout = (req, res, next) => {
 exports.changeImg = async (req, res) => {
   try {
     const getUser = req.user;
-    console.log(getUser);
+
     if (!req.file) {
       return res.status(400).json({ message: "이미지를 업로드해주세요." });
     }
@@ -384,7 +333,7 @@ exports.changeImg = async (req, res) => {
 
 // 회원 정보 수정
 exports.changeInfo = async (req, res, next) => {
-  const { nickname, oldPwd, newPwd } = req.body;
+  const { nickname, oldPw, newPw } = req.body;
 
   try {
     const getUser = req.user || null;
@@ -398,15 +347,22 @@ exports.changeInfo = async (req, res, next) => {
       return res.json({ message: "사용자를 찾을 수 없습니다." });
     }
 
-    const isMatch = await bcrypt.compare(oldPwd, user.password);
-    if (!isMatch) {
-      return res.json({ message: "현재 비밀번호가 일치하지 않습니다." });
-    }
-    const salt = await bcrypt.genSalt(SALT);
-    const hash = await bcrypt.hash(newPwd, salt);
-    user.password = hash;
+    // 비밀번호를 수정하려는 경우, 비밀번호 확인 과정 추가
+    if (newPw) {
+      const isMatch = await bcrypt.compare(oldPw, user.password);
+      if (!isMatch) {
+        return res.json({ message: "현재 비밀번호가 일치하지 않습니다." });
+      }
 
-    user.nickname = nickname || user.nickname;
+      const salt = await bcrypt.genSalt(SALT);
+      const hash = await bcrypt.hash(newPw, salt);
+      user.password = hash; // 비밀번호 수정
+    }
+
+    // 닉네임을 수정하려는 경우, 닉네임 수정
+    if (nickname) {
+      user.nickname = nickname;
+    }
 
     await user.save();
     return res.json({ result: true, message: "회원 정보 수정 성공", user });
@@ -458,7 +414,6 @@ exports.checkNick = async (req, res) => {
 };
 
 /* 마이페이지 */
-
 // 마이페이지 메인
 exports.mypage = async (req, res) => {
   try {

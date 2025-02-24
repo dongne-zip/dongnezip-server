@@ -6,7 +6,7 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
-// require("./passport/kakaoStrategy")();
+require("./passport/kakaoStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
@@ -38,6 +38,7 @@ const indexRouter = require("./routes/index");
 const chatRouter = require("./routes/chat");
 const userRouter = require("./routes/user");
 const itemRouter = require("./routes/item");
+const { truncate } = require("fs");
 
 // // 메인 라우터 설정
 app.use(prefix, indexRouter);
@@ -48,7 +49,7 @@ app.use(`${prefix}/item`, itemRouter);
 app.use(`${prefix}/user`, userRouter);
 
 sequelize
-  .sync({ force: false })
+  .sync({ force: true })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);

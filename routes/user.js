@@ -5,6 +5,9 @@ const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 const router = express.Router();
 
+// 로그인 유지
+router.post("/token", UserController.token);
+
 // 인증 번호 이메일 전송
 router.post("/sendCode", UserController.sendCode);
 
@@ -62,7 +65,7 @@ router.get(
 
 // 구글 로그인
 router.get(
-  "/login//google",
+  "/login/google",
   passport.authenticate(
     "google",
     { session: false },
