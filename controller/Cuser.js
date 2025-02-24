@@ -13,6 +13,7 @@ const nodemailer = require("nodemailer");
 const SALT = 10;
 const SECRET_KEY = process.env.SECRET_KEY;
 
+// 인증 번호 이메일 전송 함수
 const sendVerificationCode = async (email) => {
   try {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -52,11 +53,14 @@ const sendVerificationCode = async (email) => {
 
 // 로그인 유지
 exports.token = async (req, res, next) => {
-  const getUser = req.user;
+  const getUser = req.user || null;
+  if (!getUser) {
+    return res.json({ message: "사용자를 찾을 수 없습니다." });
+  }
   try {
     const user = await User.findOne({ where: { id: getUser.id } });
     if (!user) {
-      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+      return res.status(400).json({ message: "사용자를 찾을 수 없습니다." });
     }
     return res.json({ result: true, nickname: user.nickname, id: user.id });
   } catch (error) {
@@ -87,25 +91,6 @@ exports.sendCode = async (req, res, next) => {
   }
 };
 
-// 비밀번호 찾기
-exports.findPw = async (req, res, next) => {
-  const { email } = req.body;
-
-  try {
-    const token = await sendVerificationCode(email); // 공통 함수 호출
-
-    return res.json({
-      result: true,
-      message: "비밀번호 찾기를 위한 인증번호가 이메일로 발송되었습니다.",
-      token,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "이메일 전송 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
-    });
-  }
-};
-
 exports.verifyCode = (req, res, next) => {
   const { code, token } = req.body;
 
@@ -123,6 +108,42 @@ exports.verifyCode = (req, res, next) => {
   } catch (error) {
     console.error("인증번호 검증 실패:", error);
     return res.json({ message: "JWT 검증 실패 또는 만료된 토큰입니다." });
+  }
+};
+
+// 비밀번호 찾기
+exports.findPw = async (req, res, next) => {
+  const { code, token, newPw } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+    if (decoded.code !== code) {
+      return res.status(400).json({
+        message: "인증번호가 일치하지 않습니다. 다시 시도해주세요.",
+      });
+    }
+
+    const user = await User.findOne({ email: decoded.email });
+    if (user) {
+      user.password = bcrypt.hashSync(newPw, 10);
+      await user.save();
+
+      return res.json({
+        result: true,
+        message: "비밀번호가 성공적으로 변경되었습니다.",
+      });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "해당 이메일을 가진 사용자가 없습니다." });
+    }
+  } catch (error) {
+    console.error("비밀번호 변경 처리 중 오류 발생:", error);
+    return res.status(500).json({
+      message:
+        "비밀번호 변경 중 오류가 발생했습니다. 나중에 다시 시도해주세요.",
+    });
   }
 };
 
