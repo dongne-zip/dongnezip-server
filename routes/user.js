@@ -65,7 +65,7 @@ router.get(
 
 // 구글 로그인
 router.get(
-  "/login//google",
+  "/login/google",
   passport.authenticate(
     "google",
     { session: false },
