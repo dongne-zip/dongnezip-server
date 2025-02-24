@@ -5,10 +5,12 @@ const { getIO } = require("../socket/index");
 // front에 sql값 전달
 exports.chat = async (req, res) => {
   try {
-    const message = await ChatMessage.findAll();
-    const room = await ChatRoom.findAll();
+    const roomId = req.params.roomId;
+    const message = await ChatMessage.findAll({
+      where: { roomId },
+    });
 
-    res.json({ message: message, room: room });
+    res.json({ message: message });
   } catch (err) {
     console.error(err);
   }

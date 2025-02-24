@@ -19,7 +19,7 @@ router.get("/:itemId", controller.getItemDetail);
 
 /** 판매 글 등록 */
 // POST /api-server/item/addItem
-router.post("/addItem", upload.array("images", 5), controller.createItem);
+router.post("/addItem", upload.array("imageUrls", 5), controller.createItem);
 
 /** 판매 글 삭제 */
 // DELETE /api-server/item/:itemId

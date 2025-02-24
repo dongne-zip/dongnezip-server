@@ -18,17 +18,21 @@ function socketHandler(server) {
     });
 
     // 입장 시 안내문구
-    socket.on("checkNick", (nickname) => {
+    socket.on("checkNick", (nickname, roomId) => {
       nickInfo[socket.id] = nickname;
-
       socket.emit("success", nickname);
-
-      io.emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
+      io.to(roomId).emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
     });
 
     // 퇴장 시 안내문구
     socket.on("disconnect", () => {
-      io.emit("notice", nickInfo[socket.id] + "님이 퇴장하였습니다.");
+      const rooms = Object.keys(socket.rooms);
+      rooms.forEach((room) => {
+        io.to(room).emit(
+          "notice",
+          nickInfo[socket.id] + "님이 퇴장하였습니다."
+        );
+      });
       delete nickInfo[socket.id];
     });
 

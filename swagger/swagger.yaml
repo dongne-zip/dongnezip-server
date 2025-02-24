@@ -5,9 +5,6 @@ info:
   version: 1.0.0
 
 paths:
-<<<<<<< HEAD
-  /api-server/item/addItem:
-=======
   /item/item:
     get:
       summary: "전체 상품 조회"
@@ -125,7 +122,6 @@ paths:
           description: "서버 오류"
 
   /item/addItem:
->>>>>>> 7dee080cbb3a619c782a24b69ddbb173bf386642
     post:
       summary: "상품 등록"
       description: "이미지와 함께 상품 정보를 등록합니다."
@@ -191,9 +187,6 @@ paths:
         "500":
           description: "서버 오류"
 
-<<<<<<< HEAD
-  
-=======
   /item/favorites/{itemId}:
     delete:
       summary: "상품 찜 취소"
@@ -270,4 +263,3 @@ components:
         imageUrl:
           type: string
           example: "https://example.com/image.jpg"
->>>>>>> 7dee080cbb3a619c782a24b69ddbb173bf386642
