@@ -18,9 +18,9 @@ function socketHandler(server) {
     });
 
     // 입장 시 안내문구
-    socket.on("checkNick", (nickname, roomId) => {
-      nickInfo[socket.id] = nickname;
-      socket.emit("success", nickname);
+    socket.on("checkNick", (userNickname, roomId) => {
+      nickInfo[socket.id] = userNickname;
+      socket.emit("success", userNickname);
       io.to(roomId).emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
     });
 
@@ -42,16 +42,20 @@ function socketHandler(server) {
         await ChatMessage.create({
           roomId: msgData.roomId,
           senderId: msgData.senderId,
+          senderNick: msgData.senderNick,
           message: msgData.msg,
           isRead: false,
           msgType: msgData.type,
         });
+
+        const data = await ChatMessage.findAll();
       } catch (err) {
         console.error(err);
       }
       io.to(msgData.roomId).emit("message", {
         type: msgData.type,
         sender: msgData.senderId,
+        nick: msgData.senderNick,
         message: msgData.msg,
         isRead: false,
       });

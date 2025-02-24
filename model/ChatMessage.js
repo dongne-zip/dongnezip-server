@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         field: "sender_id",
       },
+      senderNick: {
+        type: DataTypes.STRING(255),
+        field: "sender_nick",
+      },
       message: {
         type: DataTypes.TEXT,
         allowNull: true,

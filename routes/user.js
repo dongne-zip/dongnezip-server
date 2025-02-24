@@ -6,7 +6,7 @@ const upload = require("../config/s3");
 const router = express.Router();
 
 // 로그인 유지
-router.post("/token", UserController.token);
+router.post("/token", authenticateToken, UserController.token);
 
 // 인증 번호 이메일 전송
 router.post("/sendCode", UserController.sendCode);

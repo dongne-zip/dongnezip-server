@@ -1,4 +1,5 @@
 
+
 INSERT INTO map (id, latitude, longitude, address, road_address, createdAt, updatedAt)
 VALUES
 (1, 37.5665, 126.9780, '서울특별시 중구 세종대로 110', '서울특별시 중구 세종대로 110', NOW(), NOW()),
@@ -8,13 +9,13 @@ VALUES
 (5, 37.394, 127.110, '경기도 성남시 분당구 정자동 178-1', '경기도 성남시 분당구 정자동 178-1', NOW(), NOW());
 
 
-INSERT INTO user (email, snsId, provider, password, user_nm, nickname, profile_img, createdAt, updatedAt)
+INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt)
 VALUES
-('test1@example.com', 'kakao_123456', 'kakao', NULL, '김철수', 'chulsoo123', 'https://example.com/profile1.jpg', NOW(), NOW()),
-('test2@example.com', 'google_789012', 'google', NULL, '이영희', 'younghee89', 'https://example.com/profile2.jpg', NOW(), NOW()),
-('localuser@example.com', NULL, 'local', 'hashedpassword123', '박민수', 'minsu99', 'https://example.com/profile3.jpg', NOW(), NOW()),
-('test4@example.com', 'kakao_654321', 'kakao', NULL, '정희진', 'heejin99', 'https://example.com/profile4.jpg', NOW(), NOW()),
-('test5@example.com', 'google_321789', 'google', NULL, '최영수', 'youngsoo77', 'https://example.com/profile5.jpg', NOW(), NOW());
+('test1@example.com', 'kakao', 'hashedpassword123', '김철수', 'chulsoo123', 'https://example.com/profile1.jpg', NOW(), NOW()),
+('test2@example.com', 'google', 'hashedpassword123', '이영희', 'younghee89', 'https://example.com/profile2.jpg', NOW(), NOW()),
+('localuser@example.com', 'local', 'hashedpassword123', '박민수', 'minsu99', 'https://example.com/profile3.jpg', NOW(), NOW()),
+('test4@example.com', 'kakao', 'hashedpassword123', '정희진', 'heejin99', 'https://example.com/profile4.jpg', NOW(), NOW()),
+('test5@example.com', 'google', 'hashedpassword123', '최영수', 'youngsoo77', 'https://example.com/profile5.jpg', NOW(), NOW());
 
 
 

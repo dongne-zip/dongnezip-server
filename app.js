@@ -6,7 +6,7 @@ const { sequelize } = require("./model");
 const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
-require("./passport/kakaoStrategy")();
+// require("./passport/kakaoStrategy")();
 // require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
@@ -49,7 +49,7 @@ app.use(`${prefix}/item`, itemRouter);
 app.use(`${prefix}/user`, userRouter);
 
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);
