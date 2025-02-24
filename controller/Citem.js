@@ -54,6 +54,8 @@ async function getAddressFromCoordinatesKakao(latitude, longitude) {
 // 판매 글 등록 + 이미지 업로드
 // POST /api-server/item/addItem
 exports.createItem = async (req, res) => {
+  console.log("🔹 req.body:", req.body);
+  console.log("🔹 req.files:", req.files);
   const transaction = await Item.sequelize.transaction();
   try {
     const {
@@ -320,8 +322,7 @@ exports.updateItem = async (req, res) => {
 // GET /api-server/item
 exports.getAllItems = async (req, res) => {
   try {
-    let { categoryId, regionId, status, sortBy } = req.query;
-    // 실제 환경에서는 req.user?.id로 받아오고, 여기서는 예시로 3 사용
+    const { categoryId, regionId, status, sortBy } = req.query;
     const userId = req.user?.id || null;
 
     const filter = {};
@@ -332,84 +333,77 @@ exports.getAllItems = async (req, res) => {
       filter.regionId = parseInt(regionId, 10);
     }
 
-    let havingCondition = {};
+    const havingCondition = {};
     if (status === "available") {
       havingCondition.buyerId = { [Op.eq]: null };
     } else if (status === "completed") {
       havingCondition.buyerId = { [Op.not]: null };
     }
 
-    let order = [];
-    if (sortBy === "popular") {
-      order = [[Sequelize.literal("favCount"), "DESC"]];
-    } else {
-      order = [["createdAt", "DESC"]];
-    }
-
-    // 전체 찜 개수를 위한 include
-    const favoriteInclude = {
-      model: Favorite,
-      as: "Favorites",
-      attributes: ["userId"],
-      required: false,
-    };
-
-    const attributes = [
-      "id",
-      "userId",
-      "title",
-      "price",
-      "detail",
-      "itemStatus",
-      [Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")), "buyerId"],
-      [Sequelize.fn("COUNT", Sequelize.col("Favorites.id")), "favCount"],
-      [Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")), "imageUrl"],
-    ];
-
-    const group = ["Item.id", "Region.id", "Category.id", "Favorites.id"];
-
     const items = await Item.findAll({
       where: filter,
-      attributes,
-      include: [
-        {
-          model: Transaction,
-          attributes: [],
-          required: false,
-        },
-        favoriteInclude,
-        {
-          model: Region,
-          attributes: ["id", "district"],
-          required: false,
-        },
-        {
-          model: Category,
-          attributes: ["id", "category"],
-          required: false,
-        },
-        {
-          model: ItemImage,
-          attributes: [],
-          required: false,
-        },
+      attributes: [
+        "id",
+        "userId",
+        "title",
+        "price",
+        "detail",
+        "itemStatus",
+        [
+          Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")),
+          "buyerId",
+        ],
+        [
+          Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")),
+          "imageUrl",
+        ],
       ],
-      group,
-      having:
-        Object.keys(havingCondition).length > 0 ? havingCondition : undefined,
-      order,
+      include: [
+        { model: Transaction, attributes: [], required: false },
+        { model: Region, attributes: ["id", "district"], required: false },
+        { model: Category, attributes: ["id", "category"], required: false },
+        { model: ItemImage, attributes: [], required: false },
+      ],
+      group: ["Item.id", "Region.id", "Category.id"],
+      having: Object.keys(havingCondition).length ? havingCondition : undefined,
     });
 
-    // plain 객체 변환 후, Favorites 배열에서 현재 사용자가 찜했는지 여부 확인
-    const responseData = items.map((item) => {
-      const plainItem = item.get({ plain: true });
-      return {
-        ...plainItem,
-        isFavorite: userId
-          ? (plainItem.Favorites || []).some((fav) => fav.userId === userId)
-          : false,
-      };
+    const itemIds = items.map((item) => item.id);
+
+    const favoritesCount = await Favorite.findAll({
+      where: { itemId: itemIds },
+      attributes: ["itemId", [Sequelize.fn("COUNT", "id"), "favCount"]],
+      group: ["itemId"],
     });
+
+    let userFavorites = [];
+    if (userId) {
+      userFavorites = await Favorite.findAll({
+        where: { itemId: itemIds, userId },
+        attributes: ["itemId"],
+      });
+    }
+
+    const favCountMap = favoritesCount.reduce((acc, fav) => {
+      acc[fav.itemId] = fav.dataValues.favCount;
+      return acc;
+    }, {});
+
+    const userFavSet = new Set(userFavorites.map((fav) => fav.itemId));
+
+    let responseData = items.map((item) => ({
+      ...item.get({ plain: true }),
+      favCount: favCountMap[item.id] || 0,
+      isFavorite: userFavSet.has(item.id),
+    }));
+
+    if (sortBy === "popular") {
+      responseData.sort((a, b) => b.favCount - a.favCount);
+    } else {
+      responseData.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    }
 
     return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
