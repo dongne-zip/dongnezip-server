@@ -47,7 +47,7 @@ app.use(`${prefix}/item`, itemRouter);
 app.use(`${prefix}/user`, userRouter);
 
 sequelize
-  .sync({ force: true })
+  .sync({ force: false })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`http://localhost:${PORT}`);
