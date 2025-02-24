@@ -23,7 +23,7 @@ router.get("/:itemId", authenticateToken, controller.getItemDetail);
 router.patch(
   "/:itemId",
   authenticateToken,
-  upload.array("images", 5),
+  upload.array("imageUrls", 5),
   controller.updateItem
 );
 
@@ -33,7 +33,12 @@ router.delete("/:itemId", authenticateToken, controller.deleteItem);
 
 /** 판매 글 등록 */
 // POST /api-server/item/addItem
-router.post("/addItem", upload.array("images", 5), controller.createItem);
+router.post(
+  "/addItem",
+  upload.array("imageUrls", 5),
+  authenticateToken,
+  controller.createItem
+);
 
 /** 상품 찜하기 */
 // POST /api-server/item/favorites

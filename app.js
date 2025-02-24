@@ -24,7 +24,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
