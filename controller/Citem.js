@@ -414,8 +414,6 @@ exports.getAllItems = async (req, res) => {
 
 /** 특정 상품 상세 조회 */
 // GET /api-server/item/:itemId
-/** 특정 상품 상세 조회 */
-// GET /api-server/item/:itemId
 exports.getItemDetail = async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -489,11 +487,14 @@ exports.getItemDetail = async (req, res) => {
     const plainItem = item.get({ plain: true });
     const { isFavoriteCount, imageUrls, ...rest } = plainItem;
     const isFavorite = Number(isFavoriteCount) > 0;
+    // 현재 로그인한 사용자와 판매글 등록 사용자가 같은지 확인
+    const isOwner = userId !== null && userId === plainItem.userId;
     const responseData = {
       ...rest,
       isFavorite, // 현재 사용자가 찜했는지 여부
       favCount: Number(plainItem.favCount), // 전체 찜 개수
       images: imageUrls ? imageUrls.split(",") : [],
+      isOwner, // 판매글 등록자와 현재 로그인한 사용자가 동일한지 여부
     };
 
     return res.status(200).json({ success: true, data: responseData });
