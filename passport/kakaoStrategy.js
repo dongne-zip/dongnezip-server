@@ -24,6 +24,7 @@ module.exports = () => {
             return done(null, exUser);
           } else {
             exUser = new User({
+              name: profile.id,
               email: profile._json.kakao_account.email,
               nickname: profile.displayName,
               provider: "kakao",

@@ -12,6 +12,10 @@ const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const SALT = 10;
 const SECRET_KEY = process.env.SECRET_KEY;
+const KAKAO_ADMIN_KEY = process.env.KAKAO_ADMIN_KEY;
+const KAKAO_UNLINK_URL = process.env.KAKAO_UNLINK_URL;
+const axios = require("axios");
+require("dotenv").config();
 
 // 인증 번호 이메일 전송 함수
 const sendVerificationCode = async (email) => {
@@ -246,7 +250,11 @@ exports.kakaoLogin = async (req, res, next) => {
 
     // JWT 발급
     const token = jwt.sign(
-      { userId: user.id, email: user.email, provider: user.provider },
+      {
+        userId: user.id,
+        email: user.email,
+        provider: user.provider,
+      },
       SECRET_KEY,
       {
         expiresIn: "7d",
@@ -279,7 +287,11 @@ exports.googleLogin = async (req, res, next) => {
 
     // JWT 발급
     const token = jwt.sign(
-      { userId: user.id, email: user.email, provider: user.provider },
+      {
+        userId: user.id,
+        email: user.email,
+        provider: user.provider,
+      },
       SECRET_KEY,
       {
         expiresIn: "7d",
@@ -306,17 +318,17 @@ exports.logout = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const provider = req.user.provider;
+    const name = req.user.name;
 
     if (!userId || !provider) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
-
     if (provider === "kakao") {
       await axios.post(
         KAKAO_UNLINK_URL,
         {
           target_id_type: "user_id",
-          target_id: userId,
+          target_id: name,
         },
         {
           headers: {
@@ -325,6 +337,7 @@ exports.logout = async (req, res, next) => {
           },
         }
       );
+      console.log("카카오 로그아웃 성공");
     }
 
     // 로컬 로그인: 쿠키에서 JWT 토큰 삭제
