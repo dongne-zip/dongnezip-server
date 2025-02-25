@@ -1,19 +1,112 @@
 const axios = require("axios");
-const {
-  Item,
-  Category,
-  Map,
-  Region,
-  ItemImage,
-  Sequelize,
-  Favorite,
-  Transaction,
-} = require("../model");
+const db = require("../model");
+const { Item, Category, Map, Region, ItemImage, Favorite, Transaction } = db;
 const upload = require("../config/s3");
 require("dotenv").config();
-const { Op } = require("sequelize");
-
+const { Op, Sequelize } = require("sequelize");
 const KAKAO_API_KEY = process.env.KAKAO_API_KEY; // 카카오 REST API 키 입력
+
+/** 판매 왕 (최다 판매자) 조회 */
+// GET /api-server/item/topSeller
+exports.topSeller = async (req, res) => {
+  try {
+    const db = require("../model");
+    const { Transaction, User, Sequelize } = db;
+
+    const topSeller = await Transaction.findOne({
+      attributes: [
+        "sellerId",
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "salesCount"],
+      ],
+      where: { sellerId: { [Op.ne]: null } }, // null 값 제외
+      group: ["sellerId"],
+      order: [[Sequelize.literal("salesCount"), "DESC"]],
+      limit: 1,
+      raw: true,
+    });
+
+    console.log(" 최다 판매자 데이터:", topSeller);
+
+    if (!topSeller) {
+      return res
+        .status(404)
+        .json({ success: false, message: "판매 데이터가 없습니다." });
+    }
+
+    // 최다 판매자 정보 조회
+    const seller = await User.findOne({
+      where: { id: topSeller.sellerId },
+      attributes: ["id", "nickname", "profileImg"],
+    });
+
+    if (!seller) {
+      return res
+        .status(404)
+        .json({ success: false, message: "판매자를 찾을 수 없습니다." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "판매 왕 조회 성공",
+      seller: {
+        id: seller.id,
+        nickname: seller.nickname,
+        profileImage: seller.profileImg,
+        salesCount: topSeller.salesCount,
+      },
+    });
+  } catch (error) {
+    console.error("판매 왕 조회 오류:", error);
+    return res.status(500).json({ success: false, message: "서버 오류 발생" });
+  }
+};
+
+/** 구매 왕 (최다 구매자) 조회 */
+// GET /api-server/item/topBuyer
+exports.topBuyer = async (req, res) => {
+  try {
+    const db = require("../model");
+    const { Transaction, User, Sequelize } = db;
+    const topBuyer = await Transaction.findOne({
+      attributes: [
+        "buyerId",
+        [
+          Transaction.sequelize.fn("COUNT", Transaction.sequelize.col("id")),
+          "purchaseCount",
+        ],
+      ],
+      where: { buyerId: { [Op.ne]: null } }, // null 값 제외
+      group: ["buyerId"],
+      order: [[Transaction.sequelize.literal("purchaseCount"), "DESC"]],
+      limit: 1,
+      raw: true,
+    });
+
+    if (!topBuyer) {
+      return res.status(404).json({ message: "구매 데이터가 없습니다." });
+    }
+
+    // 최다 구매자 정보 조회
+    const buyer = await User.findOne({
+      where: { id: topBuyer.buyerId },
+      attributes: ["id", "nickname", "profileImg"],
+    });
+
+    return res.status(200).json({
+      result: true,
+      message: "구매 왕 조회 성공",
+      buyer: {
+        id: buyer.id,
+        nickname: buyer.nickname,
+        profileImage: buyer.profileImg,
+        purchaseCount: topBuyer.purchaseCount,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "서버 오류 발생" });
+  }
+};
 
 // 카카오맵 API를 이용한 좌표 → 주소 변환 함수
 async function getAddressFromCoordinatesKakao(latitude, longitude) {
@@ -54,8 +147,6 @@ async function getAddressFromCoordinatesKakao(latitude, longitude) {
 // 판매 글 등록 + 이미지 업로드
 // POST /api-server/item/addItem
 exports.createItem = async (req, res) => {
-  console.log("🔹 req.body:", req.body);
-  console.log("🔹 req.files:", req.files);
   const transaction = await Item.sequelize.transaction();
   try {
     const {
@@ -416,6 +507,18 @@ exports.getAllItems = async (req, res) => {
 // GET /api-server/item/:itemId
 exports.getItemDetail = async (req, res) => {
   try {
+    const db = require("../model");
+    const {
+      Item,
+      User,
+      Category,
+      Region,
+      Map,
+      ItemImage,
+      Sequelize,
+      Favorite,
+    } = db;
+
     const { itemId } = req.params;
     const userId = req.user?.id || null;
 
@@ -431,29 +534,31 @@ exports.getItemDetail = async (req, res) => {
         "categoryId",
         "regionId",
         "createdAt",
-        // 여러 이미지를 하나의 문자열로 집계
         [
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
         ],
-        // 전체 찜 개수: favorite 테이블에서 해당 아이템의 전체 찜 수 계산
         [
           Sequelize.literal(
-            `(SELECT COUNT(*) FROM favorite WHERE favorite.item_id = Item.id)`
+            `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id)`
           ),
           "favCount",
         ],
-        // 현재 사용자 찜 여부: 로그인한 경우, 해당 아이템에 대해 현재 사용자의 찜 수 계산 (0보다 크면 찜한 것으로 간주)
         [
           Sequelize.literal(
             userId
-              ? `(SELECT COUNT(*) FROM favorite WHERE favorite.item_id = Item.id AND favorite.user_id = ${userId})`
+              ? `(SELECT COUNT(*) FROM Favorite WHERE Favorite.item_id = Item.id AND Favorite.user_id = ${userId})`
               : "0"
           ),
           "isFavoriteCount",
         ],
       ],
       include: [
+        {
+          model: User,
+          attributes: ["id", "nickname", "profileImg"], // ✅ User 정보 추가
+          required: false,
+        },
         {
           model: Region,
           attributes: ["id", "district"],
@@ -475,7 +580,7 @@ exports.getItemDetail = async (req, res) => {
           required: false,
         },
       ],
-      group: ["Item.id", "Region.id", "Category.id", "map.id"],
+      group: ["Item.id", "User.id", "Region.id", "Category.id", "Map.id"],
     });
 
     if (!item) {
@@ -485,16 +590,17 @@ exports.getItemDetail = async (req, res) => {
     }
 
     const plainItem = item.get({ plain: true });
-    const { isFavoriteCount, imageUrls, ...rest } = plainItem;
+    const { isFavoriteCount, imageUrls, User: sellerInfo, ...rest } = plainItem;
     const isFavorite = Number(isFavoriteCount) > 0;
-    // 현재 로그인한 사용자와 판매글 등록 사용자가 같은지 확인
-    const isOwner = userId !== null && userId === plainItem.userId;
+    const isOwner = userId !== null && userId === plainItem.userId; // 로그인한 사용자와 판매자가 같은지 여부
+
+    // 응답 데이터 정리
     const responseData = {
       ...rest,
-      isFavorite, // 현재 사용자가 찜했는지 여부
-      favCount: Number(plainItem.favCount), // 전체 찜 개수
+      isFavorite,
+      favCount: Number(plainItem.favCount),
       images: imageUrls ? imageUrls.split(",") : [],
-      isOwner, // 판매글 등록자와 현재 로그인한 사용자가 동일한지 여부
+      isOwner, //판매자가 로그인한 사용자와 동일한지 여부
     };
 
     return res.status(200).json({ success: true, data: responseData });

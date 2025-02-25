@@ -21,7 +21,7 @@ const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불�
 socketHandler(server);
 
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: "http://localhost:3001",
   credentials: true,
 };
 
@@ -31,7 +31,7 @@ app.use(passport.initialize());
 app.use(express.json()); // JSON 요청을 받을 수 있도록 설정
 app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터를 받을 수 있도록 설정
 // Swagger 설정 적용
-// setupSwagger(app);
+setupSwagger(app);
 
 // // 라우터 임포트
 const indexRouter = require("./routes/index");

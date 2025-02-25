@@ -16,14 +16,14 @@ db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
 // 모델 등록
-db.Item = require("./Item")(sequelize, Sequelize);
-db.ItemImage = require("./ItemImage")(sequelize, Sequelize);
+db.User = require("./User")(sequelize, Sequelize);
 db.Region = require("./Region")(sequelize, Sequelize);
 db.Category = require("./Category")(sequelize, Sequelize);
+db.Map = require("./Map")(sequelize, Sequelize);
+db.Item = require("./Item")(sequelize, Sequelize);
+db.ItemImage = require("./ItemImage")(sequelize, Sequelize);
 db.Favorite = require("./Favorite")(sequelize, Sequelize);
 db.Transaction = require("./Transaction")(sequelize, Sequelize);
-db.User = require("./User")(sequelize, Sequelize);
-db.Map = require("./Map")(sequelize, Sequelize);
 db.ChatMessage = require("./ChatMessage")(sequelize, Sequelize);
 db.ChatRoom = require("./ChatRoom")(sequelize, Sequelize);
 
