@@ -442,6 +442,7 @@ exports.mypage = async (req, res) => {
             {
               model: ItemImage,
               attributes: ["id", "imageUrl"],
+              limit: 4,
             },
           ],
         },
@@ -459,6 +460,7 @@ exports.mypage = async (req, res) => {
             {
               model: ItemImage,
               attributes: ["id", "imageUrl"],
+              limit: 4,
             },
           ],
         },
@@ -476,6 +478,7 @@ exports.mypage = async (req, res) => {
             {
               model: ItemImage,
               attributes: ["id", "imageUrl"],
+              limit: 4,
             },
           ],
         },
