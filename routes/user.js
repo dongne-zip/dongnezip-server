@@ -83,16 +83,13 @@ router.get(
 // 로그아웃
 router.post("/logout", authenticateToken, UserController.logout);
 
-// 프로필 이미지 수정
-router.post(
-  "/changeImg",
+// 회원 정보 수정
+router.patch(
+  "/changeInfo",
   authenticateToken,
   upload.single("profileImg"),
-  UserController.changeImg
+  UserController.changeInfo
 );
-
-// 회원 정보 수정
-router.patch("/changeInfo", authenticateToken, UserController.changeInfo);
 
 // 회원 탈퇴
 router.delete("/deleteUser", authenticateToken, UserController.deleteUser);
