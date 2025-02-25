@@ -13,23 +13,30 @@ module.exports = () => {
       },
       async (profile, done) => {
         try {
-          const exUser = await User.findOne({
-            where: { snsId: profile.id, provider: "google" },
+          const email = profile.emails[0].value;
+          const nickname = profile.displayName;
+
+          let exUser = await User.findOne({
+            where: {
+              email: email,
+              provider: "google",
+            },
           });
+
           if (exUser) {
-            done(null, exUser);
+            return done(null, exUser);
           } else {
-            const newUser = await User.create({
-              email: profile.email[0].value,
-              nickname: profile.displayName,
-              snsId: profile.id,
+            exUser = new User({
+              email: email,
+              nickname: nickname,
               provider: "google",
             });
-            done(null, newUser);
+
+            await exUser.save();
+            return done(null, exUser);
           }
         } catch (error) {
-          console.error(error);
-          done(error);
+          return done(error);
         }
       }
     )
