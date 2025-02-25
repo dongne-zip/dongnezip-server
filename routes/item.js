@@ -14,10 +14,6 @@ router.get("/item", authenticateToken, controller.getAllItems);
 // GET /api-server/item/search?keyword=검색어
 router.get("/search", authenticateToken, controller.searchItems);
 
-/** 상품 상세 조회 */
-// GET /api-server/item/:itemId
-router.get("/:itemId", authenticateToken, controller.getItemDetail);
-
 /** 판매 글 수정 */
 // PATCH /api-server/item/:itemId
 router.patch(
@@ -63,5 +59,16 @@ router.delete(
 // /** 찜한 상품 목록 조회 */
 // // GET /api-server/item/favorites
 // router.get("/favorites", authenticateToken, controller.getFavoriteItems);
+
+/** 판매 왕 (최다 판매자) 조회 */
+// GET /api-server/item/topSeller
+router.get("/topSeller", controller.topSeller);
+/** 구매 왕 (최다 구매자) 조회 */
+// GET /api-server/item/topBuyer
+router.get("/topBuyer", controller.topBuyer);
+
+/** 상품 상세 조회 */
+// GET /api-server/item/:itemId
+router.get("/:itemId", authenticateToken, controller.getItemDetail);
 
 module.exports = router;
