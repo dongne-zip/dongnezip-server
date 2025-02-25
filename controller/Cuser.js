@@ -316,43 +316,36 @@ exports.googleLogin = async (req, res, next) => {
 // 로그아웃
 exports.logout = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    const provider = req.user.provider;
-    const name = req.user.name;
+    const userId = req.user?.id;
+    const provider = req.user?.provider;
 
     if (!userId || !provider) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
-    if (provider === "kakao") {
-      await axios.post(
-        KAKAO_UNLINK_URL,
-        {
-          target_id_type: "user_id",
-          target_id: name,
-        },
-        {
-          headers: {
-            Authorization: `KakaoAK ${KAKAO_ADMIN_KEY}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
-      console.log("카카오 로그아웃 성공");
-    }
 
-    // 로컬 로그인: 쿠키에서 JWT 토큰 삭제
+    // 1. 로컬 로그아웃 (JWT 토큰 삭제)
     res.cookie("authToken", "", {
       httpOnly: true,
       secure: false,
-      maxAge: 0, // 만료 시간 0으로 설정
+      maxAge: 0, // 만료
     });
+
+    let kakaoLogoutUrl = null;
+
+    // 2. 카카오 로그아웃 (연결 끊기)
+    if (provider === "kakao") {
+      kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${
+        process.env.KAKAO_ID
+      }&logout_redirect_uri=${encodeURIComponent(process.env.FRONT_URI)}`;
+    }
 
     return res.status(200).json({
       result: true,
       message: "로그아웃되었습니다.",
+      kakaoLogoutUrl,
     });
   } catch (error) {
-    console.error(error);
+    console.error("로그아웃 오류:", error);
     return next(error);
   }
 };
@@ -414,6 +407,7 @@ exports.deleteUser = async (req, res) => {
   try {
     const userId = req.user.id;
     const provider = req.user.provider;
+    const name = req.user.name;
 
     if (!userId || !provider) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
@@ -424,7 +418,7 @@ exports.deleteUser = async (req, res) => {
         KAKAO_UNLINK_URL,
         {
           target_id_type: "user_id",
-          target_id: userId,
+          target_id: name,
         },
         {
           headers: {
@@ -445,7 +439,9 @@ exports.deleteUser = async (req, res) => {
 
     res.clearCookie("jwt");
 
-    return res.status(200).json({ message: "회원 탈퇴가 완료되었습니다." });
+    return res
+      .status(200)
+      .json({ result: true, message: "회원 탈퇴가 완료되었습니다." });
   } catch (error) {
     console.error("회원 탈퇴 오류:", error.response?.data || error.message);
     return res
