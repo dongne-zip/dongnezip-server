@@ -17,7 +17,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const sendVerificationCode = async (email) => {
   try {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const token = jwt.sign({ email, code }, process.env.SECRET_KEY, {
+    const token = jwt.sign({ email, code }, SECRET_KEY, {
       expiresIn: "3m",
     });
 
@@ -95,7 +95,7 @@ exports.verifyCode = (req, res, next) => {
   const { code, token } = req.body;
 
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY);
 
     // 인증번호 비교
     if (decoded.code === code) {
@@ -116,7 +116,7 @@ exports.findPw = async (req, res, next) => {
   const { code, token, newPw } = req.body;
 
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY);
 
     if (decoded.code !== code) {
       return res.status(400).json({
@@ -241,13 +241,9 @@ exports.kakaoLogin = async (req, res, next) => {
     }
 
     // JWT 발급
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.SECRET_KEY,
-      {
-        expiresIn: "7d",
-      }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
+      expiresIn: "7d",
+    });
 
     const cookieOptions = {
       httpOnly: true,
@@ -265,30 +261,31 @@ exports.kakaoLogin = async (req, res, next) => {
 };
 
 // 구글 로그인
-exports.googleLogin = async (req, res) => {
+exports.googleLogin = async (req, res, next) => {
   const user = req.user;
 
   try {
-    // JWT 발급
+    if (!user) {
+      return res.status(401).json({ message: "로그인 실패: 사용자 정보 없음" });
+    }
 
+    // JWT 발급
     const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
       expiresIn: "7d",
     });
 
-    // 쿠키 옵션 설정
     const cookieOptions = {
       httpOnly: true,
       secure: false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
-    // 쿠키에 JWT 저장
     res.cookie("authToken", token, cookieOptions);
 
-    return res.json({ result: true, message: "로그인 성공", token });
+    res.redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
-    return res.json({ message: "구글 로그인 중 오류가 발생했습니다." });
+    return next(error);
   }
 };
 
