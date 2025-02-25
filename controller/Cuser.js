@@ -211,9 +211,13 @@ exports.localLogin = async (req, res, next) => {
 
     // JWT 발급
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, provider: user.provider },
+      SECRET_KEY,
+      {
+        expiresIn: "7d",
+      }
+    );
 
     // 쿠키 옵션 설정
     const cookieOptions = {
@@ -241,9 +245,13 @@ exports.kakaoLogin = async (req, res, next) => {
     }
 
     // JWT 발급
-    const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, provider: user.provider },
+      SECRET_KEY,
+      {
+        expiresIn: "7d",
+      }
+    );
 
     const cookieOptions = {
       httpOnly: true,
@@ -270,9 +278,13 @@ exports.googleLogin = async (req, res, next) => {
     }
 
     // JWT 발급
-    const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, provider: user.provider },
+      SECRET_KEY,
+      {
+        expiresIn: "7d",
+      }
+    );
 
     const cookieOptions = {
       httpOnly: true,
@@ -290,8 +302,31 @@ exports.googleLogin = async (req, res, next) => {
 };
 
 // 로그아웃
-exports.logout = (req, res, next) => {
+exports.logout = async (req, res, next) => {
   try {
+    const userId = req.user.id;
+    const provider = req.user.provider;
+
+    if (!userId || !provider) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
+
+    if (provider === "kakao") {
+      await axios.post(
+        KAKAO_UNLINK_URL,
+        {
+          target_id_type: "user_id",
+          target_id: userId,
+        },
+        {
+          headers: {
+            Authorization: `KakaoAK ${KAKAO_ADMIN_KEY}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+    }
+
     // 로컬 로그인: 쿠키에서 JWT 토큰 삭제
     res.cookie("authToken", "", {
       httpOnly: true,
@@ -302,12 +337,6 @@ exports.logout = (req, res, next) => {
     return res.status(200).json({
       result: true,
       message: "로그아웃되었습니다.",
-    });
-
-    // 카카오/구글 로그인: passport 세션 종료
-    req.logout((err) => {
-      if (err) return next(err);
-      return res.json({ result: true, message: "로그아웃 성공" });
     });
   } catch (error) {
     console.error(error);
@@ -370,23 +399,45 @@ exports.changeInfo = async (req, res, next) => {
 // 회원 탈퇴
 exports.deleteUser = async (req, res) => {
   try {
-    const getUser = req.user || null;
-    if (!getUser) {
-      return res.status(400).json({ message: "로그인 정보가 없습니다." });
+    const userId = req.user.id;
+    const provider = req.user.provider;
+
+    if (!userId || !provider) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
     }
 
-    const user = await User.findOne({ where: { id: getUser.id } });
-
-    if (!user) {
-      return res.json({ message: "사용자를 찾을 수 없습니다." });
+    if (provider === "kakao") {
+      await axios.post(
+        KAKAO_UNLINK_URL,
+        {
+          target_id_type: "user_id",
+          target_id: userId,
+        },
+        {
+          headers: {
+            Authorization: `KakaoAK ${KAKAO_ADMIN_KEY}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
     }
 
-    // 사용자 삭제
-    await user.destroy();
-    return res.json({ result: true, message: "회원 탈퇴 성공" });
-  } catch (err) {
-    console.error(err);
-    return res.json({ message: "서버 오류가 발생했습니다." });
+    res.cookie("authToken", "", {
+      httpOnly: true,
+      secure: false,
+      maxAge: 0,
+    });
+
+    await User.destroy({ where: { id: userId } });
+
+    res.clearCookie("jwt");
+
+    return res.status(200).json({ message: "회원 탈퇴가 완료되었습니다." });
+  } catch (error) {
+    console.error("회원 탈퇴 오류:", error.response?.data || error.message);
+    return res
+      .status(500)
+      .json({ message: "회원 탈퇴 실패", error: error.message });
   }
 };
 
