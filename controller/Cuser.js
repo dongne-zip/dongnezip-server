@@ -257,11 +257,7 @@ exports.kakaoLogin = async (req, res, next) => {
 
     res.cookie("authToken", token, cookieOptions);
 
-    return res.json({
-      result: true,
-      message: "로그인 성공",
-      token,
-    });
+    res.redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
     return next(error);
@@ -427,31 +423,29 @@ exports.mypage = async (req, res) => {
     const user = await User.findOne({ where: { id: getUser.id } });
 
     if (!user) {
-      return res.json({ message: "사용자를 찾을 수 없습니다." });
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
     }
 
-    // 판매 물품 조회
+    // 판매한 상품 조회
     const soldItems = await Transaction.findAll({
-      where: { sellerId: getUser },
+      where: { seller_id: getUser.id },
       include: [
         {
           model: Item,
-          where: { userId: getUser },
           attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              attributes: ["id", "imageUrl"],
-              limit: 4,
+              attributes: ["imageUrl"],
             },
           ],
         },
       ],
     });
 
-    // 구매 물품 조회
+    // 구매한 상품 조회
     const boughtItems = await Transaction.findAll({
-      where: { buyerId: getUser },
+      where: { buyer_id: getUser.id },
       include: [
         {
           model: Item,
@@ -459,41 +453,59 @@ exports.mypage = async (req, res) => {
           include: [
             {
               model: ItemImage,
-              attributes: ["id", "imageUrl"],
-              limit: 4,
+              attributes: ["imageUrl"],
             },
           ],
         },
       ],
     });
 
-    // 찜한 물품 조회
+    // 찜한 상품 조회
     const favoriteItems = await Favorite.findAll({
-      where: { userId: getUser },
+      where: { user_id: getUser.id },
       include: [
         {
           model: Item,
-          attributes: ["id", "title", "price", "status", "itemStatus"],
+          attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              attributes: ["id", "imageUrl"],
-              limit: 4,
+              attributes: ["imageUrl"],
             },
           ],
         },
       ],
     });
+
+    // 프론트로 보낼 데이터 가공
     return res.status(200).json({
       result: true,
       message: "마이페이지 정보 조회 성공",
-      soldItems,
-      boughtItems,
-      favoriteItems,
+      soldItems: soldItems.map((t) => ({
+        id: t.Item.id,
+        title: t.Item.title,
+        price: t.Item.price,
+        imageUrl:
+          t.Item.ItemImages.length > 0 ? t.Item.ItemImages[0].imageUrl : null,
+      })),
+      boughtItems: boughtItems.map((t) => ({
+        id: t.Item.id,
+        title: t.Item.title,
+        price: t.Item.price,
+        imageUrl:
+          t.Item.ItemImages.length > 0 ? t.Item.ItemImages[0].imageUrl : null,
+      })),
+      favoriteItems: favoriteItems.map((f) => ({
+        id: f.Item.id,
+        title: f.Item.title,
+        price: f.Item.price,
+        imageUrl:
+          f.Item.ItemImages.length > 0 ? f.Item.ItemImages[0].imageUrl : null,
+      })),
     });
   } catch (err) {
     console.error(err);
-    return res.json({ message: "서버 오류가 발생했습니다." });
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -517,7 +529,7 @@ exports.soldItems = async (req, res) => {
 
     const { rows, count } = await Transaction.findAndCountAll({
       where: {
-        sellerId: getUser,
+        sellerId: getUser.id,
       },
       include: [
         {
@@ -579,7 +591,7 @@ exports.boughtItems = async (req, res) => {
 
     const { rows, count } = await Transaction.findAndCountAll({
       where: {
-        buyerId: getUser,
+        buyerId: getUser.id,
       },
       include: [
         {
@@ -640,7 +652,7 @@ exports.LikeItems = async (req, res) => {
 
     const { rows, count } = await Favorite.findAndCountAll({
       where: {
-        userId: getUser,
+        userId: getUser.id,
       },
       include: [
         {
