@@ -552,6 +552,16 @@ exports.soldItems = async (req, res) => {
 
     const totalPages = Math.ceil(count / limit);
 
+    if (rows.length === 0 && page > totalPages) {
+      return res.json({
+        message: "더 이상 아이템이 없습니다.",
+        items: [],
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: count,
+      });
+    }
+
     return res.json({
       items: rows.map((item) => {
         return {
@@ -614,6 +624,16 @@ exports.boughtItems = async (req, res) => {
 
     const totalPages = Math.ceil(count / limit);
 
+    if (rows.length === 0 && page > totalPages) {
+      return res.json({
+        message: "더 이상 아이템이 없습니다.",
+        items: [],
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: count,
+      });
+    }
+
     return res.json({
       items: rows.map((item) => {
         return {
@@ -674,6 +694,17 @@ exports.LikeItems = async (req, res) => {
     });
 
     const totalPages = Math.ceil(count / limit);
+
+    if (rows.length === 0 && page > totalPages) {
+      return res.json({
+        message: "더 이상 아이템이 없습니다.",
+        items: [],
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: count,
+      });
+    }
+
     return res.json({
       items: rows.map((favorite) => {
         return {
