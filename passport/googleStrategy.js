@@ -11,8 +11,9 @@ module.exports = () => {
         clientSecret: process.env.GOOGLE_SECRET,
         callbackURL: process.env.GOOGLE_CALLBACK_URL,
       },
-      async (profile, done) => {
+      async (accessToken, refreshToken, profile, done) => {
         try {
+          const id = profile.id;
           const email = profile.emails[0].value;
           const nickname = profile.displayName;
 
@@ -27,6 +28,7 @@ module.exports = () => {
             return done(null, exUser);
           } else {
             exUser = new User({
+              name: id,
               email: email,
               nickname: nickname,
               provider: "google",
