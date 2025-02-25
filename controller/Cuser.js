@@ -322,36 +322,6 @@ exports.logout = (req, res, next) => {
   }
 };
 
-// 프로필 이미지 변경
-exports.changeImg = async (req, res) => {
-  try {
-    const getUser = req.user;
-
-    if (!req.file) {
-      return res.status(400).json({ message: "이미지를 업로드해주세요." });
-    }
-
-    const imageUrl = req.file.location;
-
-    const user = await User.findOne({ where: { id: getUser.id } });
-    if (!user) {
-      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
-    }
-
-    user.profileImg = imageUrl;
-    await user.save();
-
-    return res.status(200).json({
-      result: true,
-      message: "프로필 이미지가 성공적으로 업데이트 되었습니다.",
-      profileImg: imageUrl,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
-  }
-};
-
 // 회원 정보 수정
 exports.changeInfo = async (req, res, next) => {
   const { nickname, oldPw, newPw } = req.body;
@@ -385,8 +355,19 @@ exports.changeInfo = async (req, res, next) => {
       user.nickname = nickname;
     }
 
+    // 이미지 수정
+    if (req.file) {
+      const imageUrl = req.file.location;
+      user.profileImg = imageUrl;
+    }
+
     await user.save();
-    return res.json({ result: true, message: "회원 정보 수정 성공", user });
+    return res.json({
+      result: true,
+      message: "회원 정보 수정 성공",
+      user,
+      profileImg: user.profileImg,
+    });
   } catch (error) {
     console.error(error);
     return next(error);
