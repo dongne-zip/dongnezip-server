@@ -572,6 +572,7 @@ exports.mypage = async (req, res) => {
 };
 
 // 판매 내역
+// 판매 내역 조회 (대표 이미지 1개 포함)
 exports.soldItems = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = 10;
@@ -590,26 +591,23 @@ exports.soldItems = async (req, res) => {
     }
 
     const { rows, count } = await Transaction.findAndCountAll({
-      where: {
-        sellerId: getUser.id,
-      },
+      where: { sellerId: getUser.id },
       include: [
         {
           model: Item,
-          //  as: "item",
           attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              // as: "images",
-              required: false,
               attributes: ["imageUrl"],
+              required: false,
+              limit: 1,
             },
           ],
         },
       ],
-      limit: limit,
-      offset: offset,
+      limit,
+      offset,
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -619,7 +617,7 @@ exports.soldItems = async (req, res) => {
         message: "더 이상 아이템이 없습니다.",
         items: [],
         currentPage: page,
-        totalPages: totalPages,
+        totalPages,
         totalItems: count,
       });
     }
@@ -633,9 +631,10 @@ exports.soldItems = async (req, res) => {
               id: item.id,
               title: item.title,
               price: item.price,
-              images: Array.isArray(item.ItemImages)
-                ? item.ItemImages.map((image) => image.imageUrl)
-                : [],
+              imageUrl:
+                item.ItemImages?.length > 0
+                  ? item.ItemImages[0].imageUrl
+                  : null,
             };
           } else {
             console.warn("item is undefined", item);
@@ -645,8 +644,7 @@ exports.soldItems = async (req, res) => {
         .filter((item) => item !== null),
 
       currentPage: page,
-
-      totalPages: totalPages,
+      totalPages,
       totalItems: count,
     });
   } catch (error) {
@@ -717,9 +715,10 @@ exports.boughtItems = async (req, res) => {
               id: item.id,
               title: item.title,
               price: item.price,
-              images: Array.isArray(item.ItemImages)
-                ? item.ItemImages.map((image) => image.imageUrl)
-                : [],
+              imageUrl:
+                item.ItemImages?.length > 0
+                  ? item.ItemImages[0].imageUrl
+                  : null,
             };
           } else {
             console.warn("item is undefined", item);
@@ -798,9 +797,10 @@ exports.LikeItems = async (req, res) => {
               id: item.id,
               title: item.title,
               price: item.price,
-              images: Array.isArray(item.ItemImages)
-                ? item.ItemImages.map((image) => image.imageUrl)
-                : [],
+              imageUrl:
+                item.ItemImages?.length > 0
+                  ? item.ItemImages[0].imageUrl
+                  : null,
             };
           } else {
             console.warn("item is undefined", item);
