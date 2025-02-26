@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         field: "chat_guest",
       },
+      guestNick: {
+        type: DataTypes.STRING(255),
+        field: "guest_nick",
+      },
     },
     {
       tableName: "room",

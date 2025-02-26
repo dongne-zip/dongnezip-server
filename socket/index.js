@@ -7,6 +7,7 @@ function socketHandler(server) {
   io = socketIO(server, {
     cors: {
       origin: `http://localhost:3000`, // 통신하는 client
+      methods: ["GET", "POST"],
     },
   });
 
@@ -14,6 +15,7 @@ function socketHandler(server) {
 
   io.on("connection", (socket) => {
     socket.on("joinRoom", (roomId) => {
+      console.log(`Socket ${socket.id} joined room ${roomId}`);
       socket.join(roomId);
     });
 
@@ -21,6 +23,11 @@ function socketHandler(server) {
     socket.on("checkNick", (userNickname, roomId) => {
       nickInfo[socket.id] = userNickname;
       socket.emit("success", userNickname);
+      console.log(
+        `Sending notice to room ${roomId}: ${
+          nickInfo[socket.id]
+        }님이 입장했습니다`
+      );
       io.to(roomId).emit("notice", nickInfo[socket.id] + "님이 입장했습니다");
     });
 
@@ -39,7 +46,7 @@ function socketHandler(server) {
     // 메세지 전송
     socket.on("send", async (msgData) => {
       try {
-        await ChatMessage.create({
+        const newMessage = await ChatMessage.create({
           roomId: msgData.roomId,
           senderId: msgData.senderId,
           senderNick: msgData.senderNick,
@@ -48,17 +55,16 @@ function socketHandler(server) {
           msgType: msgData.type,
         });
 
-        const data = await ChatMessage.findAll();
+        io.to(msgData.roomId).emit("message", {
+          type: msgData.type,
+          senderId: msgData.senderId,
+          senderNick: msgData.senderNick,
+          message: msgData.msg,
+          isRead: false,
+        });
       } catch (err) {
         console.error(err);
       }
-      io.to(msgData.roomId).emit("message", {
-        type: msgData.type,
-        sender: msgData.senderId,
-        nick: msgData.senderNick,
-        message: msgData.msg,
-        isRead: false,
-      });
     });
   });
 }
