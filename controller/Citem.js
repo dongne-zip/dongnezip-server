@@ -913,3 +913,41 @@ exports.getSoldItemsByUser = async (req, res) => {
     return res.status(500).json({ success: false, message: "서버 오류 발생" });
   }
 };
+
+/** 상품 거래 완료 */
+// POST /api-server/item/complete
+exports.completeItemTransaction = async (req, res) => {
+  try {
+    const { itemId, buyerId } = req.body;
+
+    if (!itemId || !buyerId) {
+      return res
+        .status(400)
+        .json({ message: "상품 ID와 구매자 ID가 필요합니다." });
+    }
+
+    // 해당 상품의 거래 내역 확인
+    const transaction = await Transaction.findOne({
+      where: { itemId },
+    });
+
+    if (!transaction) {
+      return res
+        .status(404)
+        .json({ message: "해당 상품의 거래 내역이 없습니다." });
+    }
+
+    // 거래 상태 변경 (판매 완료)
+    await transaction.update({ buyerId });
+
+    // 상품 상태도 "판매 완료"로 업데이트
+    await Item.update({ status: "거래완료" }, { where: { id: itemId } });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "상품 거래가 완료되었습니다." });
+  } catch (error) {
+    console.error("거래 완료 오류:", error);
+    return res.status(500).json({ success: false, message: "서버 오류 발생" });
+  }
+};
