@@ -57,6 +57,31 @@ exports.image = async (req, res) => {
   }
 };
 
+exports.getUserChatRooms = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const rooms = await ChatRoom.findAll({
+      where: {
+        [Op.or]: [{ chatHost: userId }],
+      },
+    });
+
+    res.json({
+      rooms: rooms.map((room) => ({
+        roomId: room.id,
+        itemId: room.itemId,
+        chatHost: room.chatHost,
+        chatGuest: room.chatGuest,
+        guestNick: room.guestNick,
+      })),
+    });
+  } catch (err) {
+    console.error("getChatRoomsError", err);
+    res.status(500).json({ error: "채팅방 목록 조회 실패" });
+  }
+};
+
 // 채팅방 메세지 읽었을 때 처리
 exports.messageAsRead = async (req, res) => {
   try {
@@ -87,30 +112,5 @@ exports.messageAsRead = async (req, res) => {
     res.json(updateCount);
   } catch (err) {
     console.error("readError", err);
-  }
-};
-
-exports.getUserChatRooms = async (req, res) => {
-  try {
-    const userId = req.params.userId;
-
-    const rooms = await ChatRoom.findAll({
-      where: {
-        [Op.or]: [{ chatHost: userId }],
-      },
-    });
-
-    res.json({
-      rooms: rooms.map((room) => ({
-        roomId: room.id,
-        itemId: room.itemId,
-        chatHost: room.chatHost,
-        chatGuest: room.chatGuest,
-        guestNick: room.guestNick,
-      })),
-    });
-  } catch (err) {
-    console.error("getChatRoomsError", err);
-    res.status(500).json({ error: "채팅방 목록 조회 실패" });
   }
 };
