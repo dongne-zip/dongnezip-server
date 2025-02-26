@@ -6,14 +6,15 @@ require("dotenv").config();
 const { Op, Sequelize } = require("sequelize");
 const KAKAO_API_KEY = process.env.KAKAO_API_KEY; // 카카오 REST API 키 입력
 
-/** 판매 왕 (최다 판매자) 조회 */
+/** 최다 판매자 조회 */
 // GET /api-server/item/topSeller
 exports.topSeller = async (req, res) => {
   try {
     const db = require("../model");
-    const { Transaction, User, Sequelize } = db;
+    const { Transaction, User } = db;
 
-    const topSeller = await Transaction.findOne({
+    // 1최다 판매자 5명 조회
+    const topSellers = await Transaction.findAll({
       attributes: [
         "sellerId",
         [Sequelize.fn("COUNT", Sequelize.col("id")), "salesCount"],
@@ -21,39 +22,42 @@ exports.topSeller = async (req, res) => {
       where: { sellerId: { [Op.ne]: null } }, // null 값 제외
       group: ["sellerId"],
       order: [[Sequelize.literal("salesCount"), "DESC"]],
-      limit: 1,
+      limit: 5, // 5명까지 조회
       raw: true,
     });
 
-    console.log(" 최다 판매자 데이터:", topSeller);
+    console.log("최다 판매자 데이터:", topSellers);
 
-    if (!topSeller) {
+    if (!topSellers || topSellers.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "판매 데이터가 없습니다." });
     }
 
-    // 최다 판매자 정보 조회
-    const seller = await User.findOne({
-      where: { id: topSeller.sellerId },
+    // 2최다 판매자 정보 조회 (User 테이블에서 가져오기)
+    const sellerIds = topSellers.map((seller) => seller.sellerId);
+
+    const sellers = await User.findAll({
+      where: { id: sellerIds },
       attributes: ["id", "nickname", "profileImg"],
+      raw: true,
     });
 
-    if (!seller) {
-      return res
-        .status(404)
-        .json({ success: false, message: "판매자를 찾을 수 없습니다." });
-    }
+    // 판매 데이터 + 사용자 정보를 매칭
+    const result = topSellers.map((seller) => {
+      const userInfo = sellers.find((user) => user.id === seller.sellerId);
+      return {
+        id: seller.sellerId,
+        nickname: userInfo ? userInfo.nickname : "알 수 없음",
+        profileImage: userInfo ? userInfo.profileImg : null,
+        salesCount: seller.salesCount,
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      message: "판매 왕 조회 성공",
-      seller: {
-        id: seller.id,
-        nickname: seller.nickname,
-        profileImage: seller.profileImg,
-        salesCount: topSeller.salesCount,
-      },
+      message: "최다 판매자 조회 성공",
+      topSellers: result,
     });
   } catch (error) {
     console.error("판매 왕 조회 오류:", error);
@@ -66,45 +70,57 @@ exports.topSeller = async (req, res) => {
 exports.topBuyer = async (req, res) => {
   try {
     const db = require("../model");
-    const { Transaction, User, Sequelize } = db;
-    const topBuyer = await Transaction.findOne({
+    const { Transaction, User } = db;
+
+    // 최다 구매자 5명 조회
+    const topBuyers = await Transaction.findAll({
       attributes: [
         "buyerId",
-        [
-          Transaction.sequelize.fn("COUNT", Transaction.sequelize.col("id")),
-          "purchaseCount",
-        ],
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "purchaseCount"],
       ],
       where: { buyerId: { [Op.ne]: null } }, // null 값 제외
       group: ["buyerId"],
-      order: [[Transaction.sequelize.literal("purchaseCount"), "DESC"]],
-      limit: 1,
+      order: [[Sequelize.literal("purchaseCount"), "DESC"]],
+      limit: 5, //5명까지 조회
       raw: true,
     });
 
-    if (!topBuyer) {
-      return res.status(404).json({ message: "구매 데이터가 없습니다." });
+    console.log("최다 구매자 데이터:", topBuyers);
+
+    if (!topBuyers || topBuyers.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "구매 데이터가 없습니다." });
     }
 
-    // 최다 구매자 정보 조회
-    const buyer = await User.findOne({
-      where: { id: topBuyer.buyerId },
+    // 최다 구매자 정보 조회 (User 테이블에서 가져오기)
+    const buyerIds = topBuyers.map((buyer) => buyer.buyerId);
+
+    const buyers = await User.findAll({
+      where: { id: buyerIds },
       attributes: ["id", "nickname", "profileImg"],
+      raw: true,
+    });
+
+    // 구매 데이터 + 사용자 정보를 매칭
+    const result = topBuyers.map((buyer) => {
+      const userInfo = buyers.find((user) => user.id === buyer.buyerId);
+      return {
+        id: buyer.buyerId,
+        nickname: userInfo ? userInfo.nickname : "알 수 없음",
+        profileImage: userInfo ? userInfo.profileImg : null,
+        purchaseCount: buyer.purchaseCount,
+      };
     });
 
     return res.status(200).json({
-      result: true,
-      message: "구매 왕 조회 성공",
-      buyer: {
-        id: buyer.id,
-        nickname: buyer.nickname,
-        profileImage: buyer.profileImg,
-        purchaseCount: topBuyer.purchaseCount,
-      },
+      success: true,
+      message: "최다 구매자 조회 성공",
+      topBuyers: result,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "서버 오류 발생" });
+    console.error("구매 왕 조회 오류:", error);
+    return res.status(500).json({ success: false, message: "서버 오류 발생" });
   }
 };
 
