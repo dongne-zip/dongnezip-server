@@ -837,3 +837,117 @@ exports.deleteItem = async (req, res) => {
     return res.status(500).json({ error: "서버 오류가 발생했습니다." });
   }
 };
+
+/** 판매자 판매물품 조회 */
+//  GET /api-server/soldItems
+exports.getSoldItemsByUser = async (req, res) => {
+  try {
+    const sellerId = Number(req.query.sellerId);
+    const page = Number(req.query.page) || 1;
+
+    if (!sellerId || isNaN(sellerId)) {
+      return res
+        .status(400)
+        .json({ message: "유효한 판매자 ID가 필요합니다." });
+    }
+
+    const limit = 10; // 한 페이지에 10개씩
+    const offset = (page - 1) * limit;
+
+    // 전체 판매 내역 개수 조회
+    const totalCount = await Transaction.count({ where: { sellerId } });
+
+    // 판매 내역 조회 (페이지네이션 적용)
+    const soldItems = await Transaction.findAll({
+      where: { sellerId },
+      include: [
+        {
+          model: Item,
+          attributes: ["id", "title", "price"],
+          include: [
+            {
+              model: ItemImage,
+              attributes: ["imageUrl"],
+              required: false,
+              limit: 1,
+            },
+          ],
+        },
+      ],
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
+    });
+
+    // 상품이 없을 경우 처리
+    if (!soldItems.length) {
+      return res.status(404).json({
+        success: false,
+        message: "상품을 찾을 수 없습니다.",
+        items: [],
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+      });
+    }
+
+    // 클라이언트 응답 데이터 변환
+    return res.status(200).json({
+      success: true,
+      items: soldItems.map((transaction) => {
+        const item = transaction.Item;
+        return {
+          id: item?.id || null,
+          title: item?.title || "제목 없음",
+          price: item?.price || 0,
+          imageUrl:
+            item?.ItemImages?.length > 0 ? item.ItemImages[0].imageUrl : null, // ✅ 대표 이미지 처리
+        };
+      }),
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalItems: totalCount,
+    });
+  } catch (error) {
+    console.error("서버 오류:", error);
+    return res.status(500).json({ success: false, message: "서버 오류 발생" });
+  }
+};
+
+/** 상품 거래 완료 */
+// POST /api-server/item/complete
+exports.completeItemTransaction = async (req, res) => {
+  try {
+    const { itemId, buyerId } = req.body;
+
+    if (!itemId || !buyerId) {
+      return res
+        .status(400)
+        .json({ message: "상품 ID와 구매자 ID가 필요합니다." });
+    }
+
+    // 해당 상품의 거래 내역 확인
+    const transaction = await Transaction.findOne({
+      where: { itemId },
+    });
+
+    if (!transaction) {
+      return res
+        .status(404)
+        .json({ message: "해당 상품의 거래 내역이 없습니다." });
+    }
+
+    // 거래 상태 변경 (판매 완료)
+    await transaction.update({ buyerId });
+
+    // 상품 상태도 "판매 완료"로 업데이트
+    await Item.update({ status: "거래완료" }, { where: { id: itemId } });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "상품 거래가 완료되었습니다." });
+  } catch (error) {
+    console.error("거래 완료 오류:", error);
+    return res.status(500).json({ success: false, message: "서버 오류 발생" });
+  }
+};
