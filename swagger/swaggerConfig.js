@@ -19,7 +19,10 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: [path.join(__dirname, "swagger.yaml")],
+  apis: [
+    path.join(__dirname, "swagger.yaml"),
+    path.join(__dirname, "swagger2.yaml"),
+  ],
 };
 
 // Swagger 문서 생성
