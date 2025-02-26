@@ -19,7 +19,7 @@ exports.chat = async (req, res) => {
 // 채팅방 생성
 exports.createChatRoom = async (req, res) => {
   try {
-    const { chatHost, itemId, chatGuest } = req.body;
+    const { chatHost, itemId, chatGuest, guestNick } = req.body;
     // 중복 체크
     const existngRoom = await ChatRoom.findOne({
       where: { chatHost, chatGuest, itemId },
@@ -32,6 +32,7 @@ exports.createChatRoom = async (req, res) => {
       chatHost,
       itemId,
       chatGuest,
+      guestNick,
     });
 
     res.json({ roomId: newChatRoom.id });
@@ -43,31 +44,16 @@ exports.createChatRoom = async (req, res) => {
 // front에서 업로드한 image 파일 message에 저장 후 반환
 exports.image = async (req, res) => {
   try {
-    console.log(req.file);
-    // 유효성 검증
     if (!req.file) {
       return res.status(400).json({ error: "이미지 파일이 없습니다" });
     }
 
     const imageUrl = req.file.location;
-    const roomId = req.body.roomId;
-
-    // sql에 새로운 값 생성
-    const newMessage = await ChatMessage.create({
-      roomId: req.body.roomId,
-      senderId: req.body.senderId,
-      message: imageUrl,
-      msgType: "image",
-      isRead: false,
-    });
-
-    // socket에 반환
-    const io = getIO();
-    io.to(roomId).emit("message", newMessage);
-
-    res.json({ data: newMessage });
+    // 메시지 저장 및 소켓 전송 제거, imageUrl만 반환
+    res.json({ imageUrl });
   } catch (err) {
     console.error("imageError", err);
+    res.status(500).json({ error: "이미지 업로드 실패" });
   }
 };
 
@@ -101,5 +87,30 @@ exports.messageAsRead = async (req, res) => {
     res.json(updateCount);
   } catch (err) {
     console.error("readError", err);
+  }
+};
+
+exports.getUserChatRooms = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const rooms = await ChatRoom.findAll({
+      where: {
+        [Op.or]: [{ chatHost: userId }],
+      },
+    });
+
+    res.json({
+      rooms: rooms.map((room) => ({
+        roomId: room.id,
+        itemId: room.itemId,
+        chatHost: room.chatHost,
+        chatGuest: room.chatGuest,
+        guestNick: room.guestNick,
+      })),
+    });
+  } catch (err) {
+    console.error("getChatRoomsError", err);
+    res.status(500).json({ error: "채팅방 목록 조회 실패" });
   }
 };
