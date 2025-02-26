@@ -803,8 +803,8 @@ exports.removeFromFavorites = async (req, res) => {
 exports.deleteItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-
     const userId = req.user.id; // JWT 미들웨어를 통해 설정된 사용자 ID
+
     console.log("userID:", userId);
 
     // 1. 아이템 조회
@@ -818,7 +818,18 @@ exports.deleteItem = async (req, res) => {
       return res.status(403).json({ error: "삭제 권한이 없습니다." });
     }
 
-    // 3. 아이템 삭제
+    // 3. 판매 완료 여부 확인 (transaction 테이블에서 `buyer_id`가 NULL이 아닌 경우 판매 완료)
+    const transaction = await Transaction.findOne({
+      where: { item_id: itemId, buyer_id: { [Op.ne]: null } }, // Op.ne: Not Equal (NULL이 아닌 값)
+    });
+
+    if (transaction) {
+      return res
+        .status(400)
+        .json({ error: "이 상품은 이미 판매 완료되어 삭제할 수 없습니다." });
+    }
+
+    // 4. 아이템 삭제
     await item.destroy();
     return res.json({ message: "상품이 성공적으로 삭제되었습니다." });
   } catch (error) {
