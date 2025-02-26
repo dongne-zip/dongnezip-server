@@ -112,12 +112,12 @@ router.post("/checkNick", authenticateToken, UserController.checkNick);
 router.get("/mypage", authenticateToken, UserController.mypage);
 
 // 판매 내역
-router.get("soldItems", authenticateToken, UserController.soldItems);
+router.get("/soldItems", authenticateToken, UserController.soldItems);
 
 // 구매 내역
-router.get("boughtItems", authenticateToken, UserController.boughtItems);
+router.get("/boughtItems", authenticateToken, UserController.boughtItems);
 
 // 찜 내역
-router.get("LikeItems", authenticateToken, UserController.LikeItems);
+router.get("/LikeItems", authenticateToken, UserController.LikeItems);
 
 module.exports = router;
