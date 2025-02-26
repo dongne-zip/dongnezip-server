@@ -82,11 +82,11 @@ db.Favorite.belongsTo(db.Item, {
   targetKey: "id",
 });
 
-// 6) Item → Transaction (1:N) - 상품이 삭제되더라도 거래 내역은 유지 (SET NULL)
+// 6) Item → Transaction (1:N) - 상품이 삭제되면 거래내역도 삭제
 db.Item.hasMany(db.Transaction, {
   foreignKey: "itemId",
   sourceKey: "id",
-  onDelete: "SET NULL",
+  onDelete: "CASCADE",
 });
 db.Transaction.belongsTo(db.Item, {
   foreignKey: "itemId",
