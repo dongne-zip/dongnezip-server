@@ -1,5 +1,4 @@
 
-
 INSERT INTO map (id, latitude, longitude, address, road_address, createdAt, updatedAt)
 VALUES
 (1, 37.5665, 126.9780, '서울특별시 중구 세종대로 110', '서울특별시 중구 세종대로 110', NOW(), NOW()),
@@ -9,13 +8,11 @@ VALUES
 (5, 37.394, 127.110, '경기도 성남시 분당구 정자동 178-1', '경기도 성남시 분당구 정자동 178-1', NOW(), NOW());
 
 
-INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt)
-VALUES
-('test1@example.com', 'kakao', 'hashedpassword123', '김철수', 'chulsoo123', 'https://example.com/profile1.jpg', NOW(), NOW()),
-('test2@example.com', 'google', 'hashedpassword123', '이영희', 'younghee89', 'https://example.com/profile2.jpg', NOW(), NOW()),
-('localuser@example.com', 'local', 'hashedpassword123', '박민수', 'minsu99', 'https://example.com/profile3.jpg', NOW(), NOW()),
-('test4@example.com', 'kakao', 'hashedpassword123', '정희진', 'heejin99', 'https://example.com/profile4.jpg', NOW(), NOW()),
-('test5@example.com', 'google', 'hashedpassword123', '최영수', 'youngsoo77', 'https://example.com/profile5.jpg', NOW(), NOW());
+INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt) VALUES
+('test1@example.com', 'local', '$2b$10$abc', '홍길동', '닉네임1', 'profile1.jpg', NOW(), NOW()),
+('test2@example.com', 'kakao', NULL, '김영희', '닉네임2', 'profile2.jpg', NOW(), NOW()),
+('test3@example.com', 'google', NULL, '이철수', '닉네임3', 'profile3.jpg', NOW(), NOW());
+
 
 
 
@@ -87,5 +84,45 @@ VALUES
     (5, 1, 3, NOW(), NOW());
 
 
-CREATE DATABASE dongnezip
-    DEFAULT CHARACTER SET ="utf8mb4" COLLATE utf8mb4_unicode_ci;
+INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt) VALUES
+('user1@example.com', 'local', '$2b$10$abc123', '홍길동', '길동이', 'profile1.jpg', NOW(), NOW()),
+('user2@example.com', 'kakao', NULL, '이영희', '영희짱', 'profile2.jpg', NOW(), NOW()),
+('user3@example.com', 'google', NULL, '박철수', '철수형', 'profile3.jpg', NOW(), NOW()),
+('user4@example.com', 'local', '$2b$10$xyz456', '최민수', '민수쿤', NULL, NOW(), NOW()),
+('user5@example.com', 'local', '$2b$10$qwe789', '장보람', '보람찡', 'profile5.jpg', NOW(), NOW());
+
+
+-- 50개 샘플 데이터 삽입 (user_id: 1~5, category_id: 1~8, region_id: 1~25, map_id: 1~5)
+INSERT INTO item (user_id, category_id, region_id, map_id, title, price, detail, item_status, createdAt, updatedAt)
+SELECT 
+    FLOOR(RAND() * 5) + 1,  -- 랜덤 user_id (1~5)
+    FLOOR(RAND() * 8) + 1,  -- 랜덤 category_id (1~8)
+    FLOOR(RAND() * 25) + 1,  -- 랜덤 region_id (1~25)
+    FLOOR(RAND() * 5) + 1,  -- 랜덤 map_id (1~5)
+    CONCAT(
+        CASE FLOOR(RAND() * 8) + 1
+            WHEN 1 THEN '중고 노트북 '
+            WHEN 2 THEN '아이폰 '
+            WHEN 3 THEN '커피 머신 '
+            WHEN 4 THEN '책 '
+            WHEN 5 THEN '스포츠 용품 '
+            WHEN 6 THEN '냉장고 '
+            WHEN 7 THEN '의류 '
+            ELSE '기타 상품 '
+        END, 
+        FLOOR(RAND() * 50) + 1
+    ),  -- 랜덤 상품명
+    FLOOR(RAND() * 900000) + 10000, -- 랜덤 가격 (1만원 ~ 90만원)
+    '이 상품은 테스트용으로 생성된 더미 데이터입니다.',  -- 상품 상세 설명
+    CASE FLOOR(RAND() * 5)
+        WHEN 0 THEN '최상'
+        WHEN 1 THEN '상'
+        WHEN 2 THEN '중'
+        WHEN 3 THEN '하'
+        ELSE '새상품'
+    END,  -- 랜덤 상품 상태 ('최상', '상', '중', '하', '새상품')
+    NOW(),
+    NOW()
+FROM (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10) t1,
+     (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t2
+LIMIT 50;

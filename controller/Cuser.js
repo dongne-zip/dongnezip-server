@@ -596,12 +596,12 @@ exports.soldItems = async (req, res) => {
       include: [
         {
           model: Item,
-          as: "item",
+          //  as: "item",
           attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              as: "images",
+              // as: "images",
               required: false,
               attributes: ["imageUrl"],
             },
@@ -625,15 +625,27 @@ exports.soldItems = async (req, res) => {
     }
 
     return res.json({
-      items: rows.map((item) => {
-        return {
-          id: item.item.id,
-          title: item.item.title,
-          price: item.item.price,
-          images: item.item.images.map((image) => image.imageUrl),
-        };
-      }),
+      items: rows
+        .map((transaction) => {
+          const item = transaction.Item;
+          if (item) {
+            return {
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              images: Array.isArray(item.ItemImages)
+                ? item.ItemImages.map((image) => image.imageUrl)
+                : [],
+            };
+          } else {
+            console.warn("item is undefined", item);
+            return null;
+          }
+        })
+        .filter((item) => item !== null),
+
       currentPage: page,
+
       totalPages: totalPages,
       totalItems: count,
     });
@@ -668,12 +680,12 @@ exports.boughtItems = async (req, res) => {
       include: [
         {
           model: Item,
-          as: "item",
+          // as: "item",
           attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              as: "images",
+              // as: "images",
               required: false,
               attributes: ["imageUrl"],
             },
@@ -697,14 +709,24 @@ exports.boughtItems = async (req, res) => {
     }
 
     return res.json({
-      items: rows.map((item) => {
-        return {
-          id: item.item.id,
-          title: item.item.title,
-          price: item.item.price,
-          images: item.item.images.map((image) => image.imageUrl),
-        };
-      }),
+      items: rows
+        .map((transaction) => {
+          const item = transaction.Item;
+          if (item) {
+            return {
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              images: Array.isArray(item.ItemImages)
+                ? item.ItemImages.map((image) => image.imageUrl)
+                : [],
+            };
+          } else {
+            console.warn("item is undefined", item);
+            return null;
+          }
+        })
+        .filter((item) => item !== null),
       currentPage: page,
       totalPages: totalPages,
       totalItems: count,
@@ -739,12 +761,12 @@ exports.LikeItems = async (req, res) => {
       include: [
         {
           model: Item,
-          as: "item",
+          // as: "item",
           attributes: ["id", "title", "price"],
           include: [
             {
               model: ItemImage,
-              as: "images",
+              // as: "images",
               required: false,
               attributes: ["imageUrl"],
             },
@@ -768,14 +790,24 @@ exports.LikeItems = async (req, res) => {
     }
 
     return res.json({
-      items: rows.map((favorite) => {
-        return {
-          id: favorite.item.id,
-          title: favorite.item.title,
-          price: favorite.item.price,
-          images: favorite.item.images.map((image) => image.imageUrl),
-        };
-      }),
+      items: rows
+        .map((favorite) => {
+          const item = favorite.Item;
+          if (item) {
+            return {
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              images: Array.isArray(item.ItemImages)
+                ? item.ItemImages.map((image) => image.imageUrl)
+                : [],
+            };
+          } else {
+            console.warn("item is undefined", item);
+            return null;
+          }
+        })
+        .filter((item) => item !== null),
       currentPage: page,
       totalPages: totalPages,
       totalItems: count,
