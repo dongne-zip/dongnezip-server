@@ -21,7 +21,7 @@ const setupSwagger = require("./swagger/swaggerConfig"); // Swagger 설정 불�
 socketHandler(server);
 
 const corsOptions = {
-  origin: "http://localhost:3001",
+  origin: "http://localhost:3000",
   credentials: true,
 };
 
