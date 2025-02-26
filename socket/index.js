@@ -14,13 +14,10 @@ function socketHandler(server) {
   const nickInfo = {}; // socket.id : nickname
 
   io.on("connection", (socket) => {
-    socket.on("joinRoom", (roomId) => {
+    socket.on("joinRoom", (userNickname, roomId) => {
       console.log(`Socket ${socket.id} joined room ${roomId}`);
       socket.join(roomId);
-    });
 
-    // 입장 시 안내문구
-    socket.on("checkNick", (userNickname, roomId) => {
       nickInfo[socket.id] = userNickname;
       socket.emit("success", userNickname);
       console.log(
@@ -55,7 +52,7 @@ function socketHandler(server) {
           msgType: msgData.type,
         });
 
-        io.to(msgData.roomId).emit("message", {
+        io.to(msgData.roomId.toString()).emit("message", {
           type: msgData.type,
           senderId: msgData.senderId,
           senderNick: msgData.senderNick,
