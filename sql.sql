@@ -11,7 +11,6 @@ VALUES
 INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt) VALUES
 ('test1@example.com', 'local', '$2b$10$abc', '홍길동', '닉네임1', 'profile1.jpg', NOW(), NOW()),
 ('test2@example.com', 'kakao', NULL, '김영희', '닉네임2', 'profile2.jpg', NOW(), NOW()),
-('test3@example.com', 'google', NULL, '이철수', '닉네임3', 'profile3.jpg', NOW(), NOW());
 
 
 
@@ -87,7 +86,6 @@ VALUES
 INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt) VALUES
 ('user1@example.com', 'local', '$2b$10$abc123', '홍길동', '길동이', 'profile1.jpg', NOW(), NOW()),
 ('user2@example.com', 'kakao', NULL, '이영희', '영희짱', 'profile2.jpg', NOW(), NOW()),
-('user3@example.com', 'google', NULL, '박철수', '철수형', 'profile3.jpg', NOW(), NOW()),
 ('user4@example.com', 'local', '$2b$10$xyz456', '최민수', '민수쿤', NULL, NOW(), NOW()),
 ('user5@example.com', 'local', '$2b$10$qwe789', '장보람', '보람찡', 'profile5.jpg', NOW(), NOW());
 

@@ -7,7 +7,6 @@ const PORT = process.env.PORT;
 const passport = require("passport");
 require("./passport/localStrategy")();
 require("./passport/kakaoStrategy")();
-// require("./passport/googleStrategy")();
 const cookieParser = require("cookie-parser");
 const prefix = "/api-server";
 require("dotenv").config();
