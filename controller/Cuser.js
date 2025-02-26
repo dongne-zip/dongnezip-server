@@ -133,7 +133,8 @@ exports.findPw = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email: decoded.email });
+    const user = await User.findOne({ where: { email: decoded.email } });
+
     if (user) {
       user.password = bcrypt.hashSync(newPw, 10);
       await user.save();
