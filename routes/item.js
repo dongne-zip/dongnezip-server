@@ -4,7 +4,9 @@ const router = express.Router();
 const authenticateToken = require("../middlewares/jwtAuth");
 const upload = require("../config/s3");
 
-console.log(controller);
+/** 판매자 판매물품 조회 */
+//  GET /api-server/soldItems
+router.get("/soldItems", authenticateToken, controller.getSoldItemsByUser);
 
 /** 전체 상품 조회 */
 // GET /api-server/item/item
@@ -48,14 +50,6 @@ router.delete(
   controller.removeFromFavorites
 );
 
-/** 상품 거래 완료 */
-//POST /api-server/item/:itemId/complete
-// router.post(
-//   "/:itemId/complete",
-//   authenticateToken,
-//   controller.completeItemTransaction
-// );
-
 // /** 찜한 상품 목록 조회 */
 // // GET /api-server/item/favorites
 // router.get("/favorites", authenticateToken, controller.getFavoriteItems);
@@ -70,5 +64,9 @@ router.get("/topBuyer", controller.topBuyer);
 /** 상품 상세 조회 */
 // GET /api-server/item/:itemId
 router.get("/:itemId", authenticateToken, controller.getItemDetail);
+
+/** 상품 거래 완료 */
+// POST /api-server/item/complete
+router.post("/complete", authenticateToken, controller.completeItemTransaction);
 
 module.exports = router;
