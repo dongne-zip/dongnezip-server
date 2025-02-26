@@ -66,7 +66,12 @@ exports.token = async (req, res, next) => {
     if (!user) {
       return res.status(400).json({ message: "사용자를 찾을 수 없습니다." });
     }
-    return res.json({ result: true, nickname: user.nickname, id: user.id });
+    return res.json({
+      result: true,
+      nickname: user.nickname,
+      id: user.id,
+      profileImg: user.profileImg,
+    });
   } catch (error) {
     console.error("user 정보 찾을 수 없음:", error);
     return res.status(500).json({
