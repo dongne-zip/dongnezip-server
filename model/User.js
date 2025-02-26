@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
         field: "email",
       },
       provider: {
-        type: DataTypes.ENUM("local", "kakao", "google"),
+        type: DataTypes.ENUM("local", "kakao"),
         allowNull: false,
         defaultValue: "local",
         field: "provider",

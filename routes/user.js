@@ -63,32 +63,6 @@ router.get(
   }
 );
 
-// 구글 로그인
-router.get("/login/google", (req, res, next) => {
-  passport.authenticate(
-    "google",
-    { session: false },
-    { scope: ["email", "profile"] }
-  )(req, res, next);
-});
-
-// 구글 로그인 콜백
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-  }),
-  (req, res, next) => {
-    UserController.googleLogin(req, res, next);
-  },
-  (err, req, res, next) => {
-    res.status(401).json({
-      message: "구글 로그인 실패",
-      error: err.message,
-    });
-  }
-);
-
 // 로그아웃
 router.post("/logout", authenticateToken, UserController.logout);
 

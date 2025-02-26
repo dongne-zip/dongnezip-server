@@ -281,43 +281,6 @@ exports.kakaoLogin = async (req, res, next) => {
   }
 };
 
-// 구글 로그인
-exports.googleLogin = async (req, res, next) => {
-  const user = req.user;
-
-  try {
-    if (!user) {
-      return res.status(401).json({ message: "로그인 실패: 사용자 정보 없음" });
-    }
-
-    // JWT 발급
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        provider: user.provider,
-      },
-      SECRET_KEY,
-      {
-        expiresIn: "7d",
-      }
-    );
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    };
-
-    res.cookie("authToken", token, cookieOptions);
-
-    res.redirect("http://localhost:3000");
-  } catch (error) {
-    console.error(error);
-    return next(error);
-  }
-};
-
 // 로그아웃
 exports.logout = async (req, res, next) => {
   try {
