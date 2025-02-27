@@ -9,7 +9,7 @@ const upload = require("../config/s3");
 router.get("/item", authenticateToken, controller.getAllItems);
 
 /** 판매자 판매물품 조회 */
-// GET /api-server/soldItems
+// GET /api-server/item/soldItems
 router.get("/soldItems", authenticateToken, controller.getSoldItemsByUser);
 
 /** 상품 검색 */

@@ -532,6 +532,7 @@ exports.getItemDetail = async (req, res) => {
       Map,
       ItemImage,
       Sequelize,
+      Transaction,
       Favorite,
     } = db;
 
@@ -553,6 +554,10 @@ exports.getItemDetail = async (req, res) => {
         [
           Sequelize.fn("GROUP_CONCAT", Sequelize.col("ItemImages.image_url")),
           "imageUrls",
+        ],
+        [
+          Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")),
+          "buyerId",
         ],
         [
           Sequelize.literal(
@@ -595,6 +600,7 @@ exports.getItemDetail = async (req, res) => {
           attributes: ["address", "placeName"],
           required: false,
         },
+        { model: Transaction, attributes: [], required: false },
       ],
       group: ["Item.id", "User.id", "Region.id", "Category.id", "Map.id"],
     });
