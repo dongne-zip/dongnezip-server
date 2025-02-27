@@ -1,12 +1,12 @@
 const socketIO = require("socket.io");
 const { ChatMessage } = require("../model/index");
-
+const FRONT = process.env.FRONT_SERVER;
 let io;
 
 function socketHandler(server) {
   io = socketIO(server, {
     cors: {
-      origin: `http://localhost:3000`, // 통신하는 client
+      origin: FRONT, // 통신하는 client
       methods: ["GET", "POST"],
     },
   });

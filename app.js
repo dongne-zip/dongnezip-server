@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const { sequelize } = require("./model");
 const PORT = process.env.PORT;
+// const SERVER = process.env.FRONT_SERVER;
 const passport = require("passport");
 require("./passport/localStrategy")();
 require("./passport/kakaoStrategy")();
