@@ -60,10 +60,15 @@ exports.image = async (req, res) => {
 exports.getUserChatRooms = async (req, res) => {
   try {
     const userId = req.params.userId;
+    const itemId = req.params.itemId;
+
+    if (!itemId) {
+      return res.status(400).json({ error: "itemId가 필요합니다." });
+    }
 
     const rooms = await ChatRoom.findAll({
       where: {
-        [Op.or]: [{ chatHost: userId }],
+        [Op.or]: [{ chatHost: userId, itemId: itemId }],
       },
     });
 
@@ -112,5 +117,51 @@ exports.messageAsRead = async (req, res) => {
     res.json(updateCount);
   } catch (err) {
     console.error("readError", err);
+  }
+};
+
+exports.chatDelete = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user?.id; // authenticateToken 미들웨어에서 제공
+
+    if (!roomId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "roomId가 필요합니다." });
+    }
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "인증된 사용자가 필요합니다." });
+    }
+
+    const chatRoomIdNum = parseInt(roomId, 10);
+    const chatRoom = await ChatRoom.findOne({ where: { id: chatRoomIdNum } });
+
+    if (!chatRoom) {
+      return res
+        .status(404)
+        .json({ success: false, message: "채팅방을 찾을 수 없습니다." });
+    }
+
+    // 권한 확인: 요청자가 chatHost 또는 chatGuest인지
+    if (chatRoom.chatHost !== userId && chatRoom.chatGuest !== userId) {
+      return res
+        .status(403)
+        .json({ success: false, message: "삭제 권한이 없습니다." });
+    }
+
+    await ChatRoom.destroy({ where: { id: chatRoomIdNum } });
+    const io = getIO();
+    io.to(roomId).emit("notice", "채팅방이 삭제되었습니다");
+    return res
+      .status(200)
+      .json({ success: true, message: "채팅방이 성공적으로 삭제되었습니다." });
+  } catch (err) {
+    console.error("채팅방 삭제 에러:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "서버 에러가 발생했습니다." });
   }
 };

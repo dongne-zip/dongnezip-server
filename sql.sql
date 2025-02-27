@@ -1,4 +1,3 @@
-
 INSERT INTO map (id, latitude, longitude, address, road_address, createdAt, updatedAt)
 VALUES
 (1, 37.5665, 126.9780, '서울특별시 중구 세종대로 110', '서울특별시 중구 세종대로 110', NOW(), NOW()),
@@ -10,7 +9,7 @@ VALUES
 
 INSERT INTO user (email, provider, password, name, nickname, profile_img, createdAt, updatedAt) VALUES
 ('test1@example.com', 'local', '$2b$10$abc', '홍길동', '닉네임1', 'profile1.jpg', NOW(), NOW()),
-('test2@example.com', 'kakao', NULL, '김영희', '닉네임2', 'profile2.jpg', NOW(), NOW()),
+('test2@example.com', 'kakao', NULL, '김영희', '닉네임2', 'profile2.jpg', NOW(), NOW()),;
 
 
 
