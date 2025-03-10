@@ -20,8 +20,9 @@ const swaggerOptions = {
     ],
   },
   apis: [
-    path.join(__dirname, "swagger.yaml"),
-    path.join(__dirname, "swagger2.yaml"),
+    path.join(__dirname, "user.yaml"),
+    path.join(__dirname, "item.yaml"),
+    path.join(__dirname, "chat.yaml"),
   ],
 };
 
@@ -33,7 +34,7 @@ const setupSwagger = (app) => {
   // Swagger UI 경로 설정
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-  // ✅ 정적 파일 제공 추가 (Swagger UI에서 YAML 참조 가능)
+  // 정적 파일 제공 추가 (Swagger UI에서 YAML 참조 가능)
   app.use("/api-docs/paths", express.static(path.join(__dirname, "paths")));
 
   console.log("Swagger UI: http://localhost:8080/api-docs");

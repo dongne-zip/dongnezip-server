@@ -425,13 +425,26 @@ exports.updateItem = async (req, res) => {
   }
 };
 
-/** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가 + 사용자 찜 여부 포함) */
-// GET /api-server/item
+/** 전체 상품 조회 (카테고리, 지역, 거래 상태 필터링 추가 + 사용자 찜 여부 포함 + 무한 스크롤 적용) */
+// GET /api-server/item/item
 exports.getAllItems = async (req, res) => {
   try {
-    const { categoryId, regionId, status, sortBy } = req.query;
+    const {
+      categoryId,
+      regionId,
+      status,
+      sortBy,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
     const userId = req.user?.id || null;
 
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    // 1) where 필터
     const filter = {};
     if (categoryId && parseInt(categoryId, 10) > 0) {
       filter.categoryId = parseInt(categoryId, 10);
@@ -440,15 +453,45 @@ exports.getAllItems = async (req, res) => {
       filter.regionId = parseInt(regionId, 10);
     }
 
-    const havingCondition = {};
+    // 2) status별로 HAVING 절을 원시 SQL(Sequelize.literal)로 정의
+    let havingLiteral = null;
     if (status === "available") {
-      havingCondition.buyerId = { [Op.eq]: null };
+      havingLiteral = Sequelize.literal(
+        "MAX(`Transactions`.`buyer_id`) IS NULL"
+      );
     } else if (status === "completed") {
-      havingCondition.buyerId = { [Op.not]: null };
+      havingLiteral = Sequelize.literal(
+        "MAX(`Transactions`.`buyer_id`) IS NOT NULL"
+      );
     }
 
+    // 3) 전체 개수 구하기 (group+having) → count() 대신 findAll() 후 .length
+    const forCountRows = await Item.findAll({
+      where: filter,
+      include: [
+        { model: Transaction, attributes: [], required: false },
+        { model: Region, attributes: [], required: false },
+        { model: Category, attributes: [], required: false },
+        { model: ItemImage, attributes: [], required: false },
+      ],
+      group: ["Item.id", "Region.id", "Category.id"],
+      // having은 객체 대신 literal을 직접 넣어야 [object Object] 문제 없음
+      having: havingLiteral || undefined,
+
+      // 여기서는 id만 가져오면 됨
+      attributes: ["id"],
+    });
+    const totalCount = forCountRows.length;
+
+    // 4) 실제 데이터 조회 (limit, offset)
     const items = await Item.findAll({
       where: filter,
+      include: [
+        { model: Transaction, attributes: [], required: false },
+        { model: Region, attributes: ["id", "district"], required: false },
+        { model: Category, attributes: ["id", "category"], required: false },
+        { model: ItemImage, attributes: [], required: false },
+      ],
       attributes: [
         "id",
         "userId",
@@ -456,6 +499,7 @@ exports.getAllItems = async (req, res) => {
         "price",
         "detail",
         "itemStatus",
+        // 집계 결과가 필요하다면:
         [
           Sequelize.fn("MAX", Sequelize.col("Transactions.buyer_id")),
           "buyerId",
@@ -464,22 +508,24 @@ exports.getAllItems = async (req, res) => {
           Sequelize.fn("MIN", Sequelize.col("ItemImages.image_url")),
           "imageUrl",
         ],
-      ],
-      include: [
-        { model: Transaction, attributes: [], required: false },
-        { model: Region, attributes: ["id", "district"], required: false },
-        { model: Category, attributes: ["id", "category"], required: false },
-        { model: ItemImage, attributes: [], required: false },
+        "createdAt",
       ],
       group: ["Item.id", "Region.id", "Category.id"],
-      having: Object.keys(havingCondition).length ? havingCondition : undefined,
+      having: havingLiteral || undefined, // <-- literal을 직접 사용
+      subQuery: false,
+      limit: limitNum,
+      offset,
     });
 
+    // 5) 좋아요 정보
     const itemIds = items.map((item) => item.id);
 
     const favoritesCount = await Favorite.findAll({
       where: { itemId: itemIds },
-      attributes: ["itemId", [Sequelize.fn("COUNT", "id"), "favCount"]],
+      attributes: [
+        "itemId",
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "favCount"],
+      ],
       group: ["itemId"],
     });
 
@@ -491,6 +537,7 @@ exports.getAllItems = async (req, res) => {
       });
     }
 
+    // 6) 좋아요 count, isFavorite 매핑
     const favCountMap = favoritesCount.reduce((acc, fav) => {
       acc[fav.itemId] = fav.dataValues.favCount;
       return acc;
@@ -498,12 +545,16 @@ exports.getAllItems = async (req, res) => {
 
     const userFavSet = new Set(userFavorites.map((fav) => fav.itemId));
 
-    let responseData = items.map((item) => ({
-      ...item.get({ plain: true }),
-      favCount: favCountMap[item.id] || 0,
-      isFavorite: userFavSet.has(item.id),
-    }));
+    let responseData = items.map((item) => {
+      const plain = item.get({ plain: true });
+      return {
+        ...plain,
+        favCount: favCountMap[item.id] || 0,
+        isFavorite: userFavSet.has(item.id),
+      };
+    });
 
+    // 7) 정렬
     if (sortBy === "popular") {
       responseData.sort((a, b) => b.favCount - a.favCount);
     } else {
@@ -512,7 +563,16 @@ exports.getAllItems = async (req, res) => {
       );
     }
 
-    return res.status(200).json({ success: true, data: responseData });
+    // 8) hasMore
+    const hasMore = offset + responseData.length < totalCount;
+
+    return res.status(200).json({
+      success: true,
+      data: responseData,
+      totalCount,
+      hasMore,
+      currentPage: pageNum,
+    });
   } catch (error) {
     console.error("Error fetching items:", error);
     return res.status(500).json({ success: false, message: "서버 오류" });
